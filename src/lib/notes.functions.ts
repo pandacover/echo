@@ -5,7 +5,7 @@ import type { DictionaryEntry, Note } from './database.types'
 import {
   getServerClerkSecretKey,
   isClerkSecretKey,
-} from './clerk-env.server'
+} from './clerk-env'
 import {
   countWords,
   formatFromMime,

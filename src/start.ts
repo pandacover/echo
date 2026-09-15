@@ -11,7 +11,7 @@ import {
   isClerkPublishableKey,
   isClerkSecretKey,
   sanitizeClerkProcessEnv,
-} from './lib/clerk-env.server'
+} from './lib/clerk-env'
 import {
   CLERK_AFTER_AUTH_PATH,
   CLERK_SIGN_IN_PATH,
