@@ -64,15 +64,18 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 
 1. Import the GitHub repo in Vercel.
 2. Framework preset can stay **Other**; Nitro emits `.vercel/output` when `VERCEL=1`.
-3. Set environment variables **before the first production build** (`VITE_*` values are inlined at build time):
+3. Set **only these** environment variables (`VITE_*` values are inlined at build time, so Redeploy after changing them). Ignore `POSTGRES_*`, `NEXT_PUBLIC_*`, and extra `SUPABASE_*` names from the marketplace integration — this app does not read them.
 
 | Name | Notes |
 | --- | --- |
-| `VITE_SUPABASE_URL` | Project URL |
-| `VITE_SUPABASE_KEY` | Publishable key |
-| `VITE_CLERK_PUBLISHABLE_KEY` / `CLERK_PUBLISHABLE_KEY` | From Clerk |
-| `CLERK_SECRET_KEY` | From Clerk |
+| `VITE_SUPABASE_URL` | `https://….supabase.co` |
+| `VITE_SUPABASE_KEY` | Publishable / `sb_publishable_…` key |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Must start with `pk_test_` or `pk_live_` (no quotes) |
+| `CLERK_PUBLISHABLE_KEY` | Same value as above |
+| `CLERK_SECRET_KEY` | Must start with `sk_test_` or `sk_live_` (no quotes) |
 | `OPENROUTER_API_KEY` | From OpenRouter |
+
+Paste keys without wrapping quotes. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
 
 4. Deploy. Add the production URL to Clerk allowed origins and the PWA will be installable over HTTPS.
 
