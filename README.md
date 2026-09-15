@@ -77,6 +77,8 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 
 Paste keys without wrapping quotes. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
 
+Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Those must be paths (`/sign-in`), and this app ignores them and uses `/sign-in` and `/sign-up` in code. Delete those Vercel env vars if they contain `sk_` or `pk_` values.
+
 4. Deploy. Add the production URL to Clerk allowed origins and the PWA will be installable over HTTPS.
 
 ## Scripts

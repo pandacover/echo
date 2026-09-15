@@ -11,7 +11,7 @@ function Page() {
       <Link to="/" className="mb-8 font-serif text-5xl text-nota-ink">
         Nota
       </Link>
-      <SignIn />
+      <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
     </div>
   )
 }
