@@ -78,7 +78,9 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 
 Paste **only** the key value (it must start with `pk_` / `sk_`). Do not paste a markdown docs page or a `# Add Clerk…` comment block into the key field. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
 
-If recording finishes with a server-session error, that is Clerk middleware failing to see the signed-in user. If it says a new row violates row-level security, the insert ran as anonymous — set `SUPABASE_SERVICE_ROLE_KEY` (marketplace usually has it) **or** activate [Clerk’s Supabase integration](https://dashboard.clerk.com/setup/supabase) and add Clerk as a third-party provider in **Supabase → Authentication → Sign In / Providers** with domain `helped-pipefish-6125.clerk.accounts.dev`.
+If recording finishes with a server-session error, that is Clerk middleware failing to see the signed-in user. If it says a new row violates row-level security, the insert `user_id` did not match `auth.jwt()->>'sub'`.
+
+Do not edit the Clerk Frontend API URL in Supabase — that field is filled by the integration and is supposed to be read-only. Set `SUPABASE_SECRET_KEY` (`sb_secret_…`) or `SUPABASE_SERVICE_ROLE_KEY` on Vercel as a **server-only** env var (the marketplace one is fine), then redeploy.
 
 Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Those must be paths (`/sign-in`), and this app ignores them and uses `/sign-in` and `/sign-up` in code. Delete those Vercel env vars if they contain `sk_` or `pk_` values.
 
