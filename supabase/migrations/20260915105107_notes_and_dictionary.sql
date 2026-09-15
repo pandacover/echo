@@ -1,5 +1,4 @@
--- Nota: voice notes + dictionary, scoped to Clerk user IDs via JWT `sub`.
--- Run this in the Supabase SQL editor after enabling Clerk as a third-party auth provider.
+-- Notes + dictionary, scoped to Clerk user IDs via JWT `sub`.
 
 create extension if not exists pgcrypto;
 

@@ -32,9 +32,10 @@ In the [Clerk Supabase integration](https://dashboard.clerk.com/setup/supabase),
 
 ### 2. Supabase
 
-1. In the Supabase dashboard, open **Authentication → Sign In / Providers → Third-party** and add **Clerk** with that domain.
-2. Run `supabase/migrations/20260915100000_notes_and_dictionary.sql` in the SQL editor.
-3. Keep the publishable values already in `.env.example`:
+The echo project is already linked. `notes` and `dictionary_entries` (with RLS) are applied from `supabase/migrations`.
+
+1. In the Supabase dashboard, open **Authentication → Sign In / Providers → Third-party** and add **Clerk** with the Clerk domain from step 1.
+2. Publishable values are in `.env.example`:
 
 ```
 VITE_SUPABASE_URL=https://audpduzramwavabcrqws.supabase.co
