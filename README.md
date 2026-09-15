@@ -1,4 +1,4 @@
-# Nota
+# Echo
 
 Installable voice-note PWA built with **TanStack Start**, **Vite**, and **React**. Record audio, transcribe with OpenRouter `openai/whisper-large-v3-turbo`, polish with `openai/gpt-4.1-nano`, and store raw + cleaned transcripts in **Supabase** behind **Clerk** session tokens and row-level security.
 

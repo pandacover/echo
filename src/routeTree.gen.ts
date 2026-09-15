@@ -9,38 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as DictionaryRouteImport } from './routes/dictionary'
-import { Route as NotesRouteImport } from './routes/notes'
-import { Route as NotesIndexRouteImport } from './routes/notes.index'
-import { Route as NotesNoteIdRouteImport } from './routes/notes.$noteId'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppDictionaryRouteImport } from './routes/_app.dictionary'
+import { Route as AppNotesRouteImport } from './routes/_app.notes'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as AppNotesIndexRouteImport } from './routes/_app.notes.index'
+import { Route as AppNotesNoteIdRouteImport } from './routes/_app.notes.$noteId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DictionaryRoute = DictionaryRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDictionaryRoute = AppDictionaryRouteImport.update({
   id: '/dictionary',
   path: '/dictionary',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const NotesRoute = NotesRouteImport.update({
+const AppNotesRoute = AppNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesIndexRoute = NotesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => NotesRoute,
-} as any)
-const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
-  id: '/$noteId',
-  path: '/$noteId',
-  getParentRoute: () => NotesRoute,
+  getParentRoute: () => AppRoute,
 } as any)
 const SignInSplatRoute = SignInSplatRouteImport.update({
   id: '/sign-in/$',
@@ -52,33 +47,44 @@ const SignUpSplatRoute = SignUpSplatRouteImport.update({
   path: '/sign-up/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppNotesIndexRoute = AppNotesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppNotesRoute,
+} as any)
+const AppNotesNoteIdRoute = AppNotesNoteIdRouteImport.update({
+  id: '/$noteId',
+  path: '/$noteId',
+  getParentRoute: () => AppNotesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/dictionary': typeof DictionaryRoute
-  '/notes': typeof NotesRouteWithChildren
-  '/notes/$noteId': typeof NotesNoteIdRoute
+  '/': typeof AppIndexRoute
+  '/dictionary': typeof AppDictionaryRoute
+  '/notes': typeof AppNotesRouteWithChildren
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
-  '/notes/': typeof NotesIndexRoute
+  '/notes/$noteId': typeof AppNotesNoteIdRoute
+  '/notes/': typeof AppNotesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/dictionary': typeof DictionaryRoute
-  '/notes/$noteId': typeof NotesNoteIdRoute
+  '/dictionary': typeof AppDictionaryRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
-  '/notes': typeof NotesIndexRoute
+  '/': typeof AppIndexRoute
+  '/notes/$noteId': typeof AppNotesNoteIdRoute
+  '/notes': typeof AppNotesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/dictionary': typeof DictionaryRoute
-  '/notes': typeof NotesRouteWithChildren
-  '/notes/$noteId': typeof NotesNoteIdRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/dictionary': typeof AppDictionaryRoute
+  '/_app/notes': typeof AppNotesRouteWithChildren
   '/sign-in/$': typeof SignInSplatRoute
   '/sign-up/$': typeof SignUpSplatRoute
-  '/notes/': typeof NotesIndexRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/notes/$noteId': typeof AppNotesNoteIdRoute
+  '/_app/notes/': typeof AppNotesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -86,73 +92,65 @@ export interface FileRouteTypes {
     | '/'
     | '/dictionary'
     | '/notes'
-    | '/notes/$noteId'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/notes/$noteId'
     | '/notes/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/dictionary'
-    | '/notes/$noteId'
     | '/sign-in/$'
     | '/sign-up/$'
+    | '/'
+    | '/notes/$noteId'
     | '/notes'
   id:
     | '__root__'
-    | '/'
-    | '/dictionary'
-    | '/notes'
-    | '/notes/$noteId'
+    | '/_app'
+    | '/_app/dictionary'
+    | '/_app/notes'
     | '/sign-in/$'
     | '/sign-up/$'
-    | '/notes/'
+    | '/_app/'
+    | '/_app/notes/$noteId'
+    | '/_app/notes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DictionaryRoute: typeof DictionaryRoute
-  NotesRoute: typeof NotesRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/dictionary': {
-      id: '/dictionary'
+    '/_app/dictionary': {
+      id: '/_app/dictionary'
       path: '/dictionary'
       fullPath: '/dictionary'
-      preLoaderRoute: typeof DictionaryRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppDictionaryRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/notes': {
-      id: '/notes'
+    '/_app/notes': {
+      id: '/_app/notes'
       path: '/notes'
       fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes/': {
-      id: '/notes/'
-      path: '/'
-      fullPath: '/notes/'
-      preLoaderRoute: typeof NotesIndexRouteImport
-      parentRoute: typeof NotesRoute
-    }
-    '/notes/$noteId': {
-      id: '/notes/$noteId'
-      path: '/$noteId'
-      fullPath: '/notes/$noteId'
-      preLoaderRoute: typeof NotesNoteIdRouteImport
-      parentRoute: typeof NotesRoute
+      preLoaderRoute: typeof AppNotesRouteImport
+      parentRoute: typeof AppRoute
     }
     '/sign-in/$': {
       id: '/sign-in/$'
@@ -168,38 +166,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignUpSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/notes/': {
+      id: '/_app/notes/'
+      path: '/'
+      fullPath: '/notes/'
+      preLoaderRoute: typeof AppNotesIndexRouteImport
+      parentRoute: typeof AppNotesRoute
+    }
+    '/_app/notes/$noteId': {
+      id: '/_app/notes/$noteId'
+      path: '/$noteId'
+      fullPath: '/notes/$noteId'
+      preLoaderRoute: typeof AppNotesNoteIdRouteImport
+      parentRoute: typeof AppNotesRoute
+    }
   }
 }
 
-interface NotesRouteChildren {
-  NotesNoteIdRoute: typeof NotesNoteIdRoute
-  NotesIndexRoute: typeof NotesIndexRoute
+interface AppNotesRouteChildren {
+  AppNotesNoteIdRoute: typeof AppNotesNoteIdRoute
+  AppNotesIndexRoute: typeof AppNotesIndexRoute
 }
 
-const NotesRouteChildren: NotesRouteChildren = {
-  NotesNoteIdRoute: NotesNoteIdRoute,
-  NotesIndexRoute: NotesIndexRoute,
+const AppNotesRouteChildren: AppNotesRouteChildren = {
+  AppNotesNoteIdRoute: AppNotesNoteIdRoute,
+  AppNotesIndexRoute: AppNotesIndexRoute,
 }
 
-const NotesRouteWithChildren = NotesRoute._addFileChildren(NotesRouteChildren)
+const AppNotesRouteWithChildren = AppNotesRoute._addFileChildren(
+  AppNotesRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppDictionaryRoute: typeof AppDictionaryRoute
+  AppNotesRoute: typeof AppNotesRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppDictionaryRoute: AppDictionaryRoute,
+  AppNotesRoute: AppNotesRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  DictionaryRoute: DictionaryRoute,
-  NotesRoute: NotesRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

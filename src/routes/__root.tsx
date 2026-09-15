@@ -29,6 +29,7 @@ const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const Route = createRootRoute({
+  staleTime: 60_000,
   beforeLoad: async () => {
     const { userId } = await fetchClerkAuth()
     return { userId }
@@ -45,12 +46,12 @@ export const Route = createRootRoute({
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
-      { name: 'apple-mobile-web-app-title', content: 'Nota' },
+      { name: 'apple-mobile-web-app-title', content: 'Echo' },
       {
         name: 'description',
         content: 'Record voice notes. Whisper transcribes. GPT polishes.',
       },
-      { title: 'Nota' },
+      { title: 'Echo' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },

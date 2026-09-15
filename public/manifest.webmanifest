@@ -1,6 +1,6 @@
 {
-  "name": "Nota",
-  "short_name": "Nota",
+  "name": "Echo",
+  "short_name": "Echo",
   "description": "Record, transcribe, and polish voice notes.",
   "start_url": "/",
   "scope": "/",
