@@ -1,0 +1,17 @@
+node_modules
+.DS_Store
+.cache
+.vercel
+.output
+.nitro
+.tanstack
+dist
+build
+.env
+.env.local
+.env.*.local
+*.log
+.vite
+dev-dist
+.clerk/
+supabase/.temp/

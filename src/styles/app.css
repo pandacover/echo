@@ -1,0 +1,84 @@
+@import 'tailwindcss' source('../');
+
+@theme {
+  --font-serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', serif;
+  --font-sans: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
+  --color-nota-bg: #fbf6f0;
+  --color-nota-ink: #1c1714;
+  --color-nota-muted: #8d8278;
+  --color-nota-soft: #c4b8ae;
+  --color-nota-line: #eadfd4;
+  --color-nota-terracotta: #c45c3e;
+  --color-nota-terracotta-dark: #a4472e;
+  --color-nota-blush: #f3e4dc;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-nota-bg);
+    color: var(--color-nota-ink);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    border-color: var(--color-nota-line);
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@keyframes wave-bob {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.record-pulse {
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+.install-banner {
+  animation: slide-up 0.4s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
