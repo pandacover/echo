@@ -15,8 +15,13 @@ import { RegisterSW } from '~/components/RegisterSW'
 import appCss from '~/styles/app.css?url'
 
 const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
-  const { userId } = await auth()
-  return { userId }
+  try {
+    const { userId } = await auth()
+    return { userId: userId ?? null }
+  } catch (error) {
+    console.error('Clerk auth lookup failed', error)
+    return { userId: null }
+  }
 })
 
 export const Route = createRootRoute({

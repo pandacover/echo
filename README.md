@@ -63,8 +63,8 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 ## Vercel
 
 1. Import the GitHub repo in Vercel.
-2. Framework preset can stay **Other**; Nitro emits the correct output from `vite build`.
-3. Set environment variables:
+2. Framework preset can stay **Other**; Nitro emits `.vercel/output` when `VERCEL=1`.
+3. Set environment variables **before the first production build** (`VITE_*` values are inlined at build time):
 
 | Name | Notes |
 | --- | --- |
