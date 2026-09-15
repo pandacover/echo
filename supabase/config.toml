@@ -15,3 +15,7 @@ major_version = 17
 [db.migrations]
 enabled = true
 schema_paths = []
+
+[auth.third_party.clerk]
+enabled = true
+domain = "helped-pipefish-6125.clerk.accounts.dev"

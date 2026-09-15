@@ -64,12 +64,13 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 
 1. Import the GitHub repo in Vercel.
 2. Framework preset can stay **Other**; Nitro emits `.vercel/output` when `VERCEL=1`.
-3. Set **only these** environment variables (`VITE_*` values are inlined at build time, so Redeploy after changing them). Ignore `POSTGRES_*`, `NEXT_PUBLIC_*`, and extra `SUPABASE_*` names from the marketplace integration — this app does not read them.
+3. Set **only these** environment variables (`VITE_*` values are inlined at build time, so Redeploy after changing them). Ignore `POSTGRES_*` and `NEXT_PUBLIC_*`. The Vercel marketplace `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`) **is** used by the server after Clerk verifies the user.
 
 | Name | Notes |
 | --- | --- |
 | `VITE_SUPABASE_URL` | `https://….supabase.co` |
 | `VITE_SUPABASE_KEY` | Publishable / `sb_publishable_…` key |
+| `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY` | Server-only. Lets recordings save without depending on Clerk-as-a-Supabase-provider |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Must start with `pk_test_` or `pk_live_` (no quotes) |
 | `CLERK_PUBLISHABLE_KEY` | Same value as above |
 | `CLERK_SECRET_KEY` | Must start with `sk_test_` or `sk_live_` (no quotes) |
@@ -77,7 +78,7 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 
 Paste **only** the key value (it must start with `pk_` / `sk_`). Do not paste a markdown docs page or a `# Add Clerk…` comment block into the key field. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
 
-If recording finishes with a server-session error, that is Clerk middleware failing to see the signed-in user — not Supabase RLS. RLS failures say `Could not save to Supabase`.
+If recording finishes with a server-session error, that is Clerk middleware failing to see the signed-in user. If it says a new row violates row-level security, the insert ran as anonymous — set `SUPABASE_SERVICE_ROLE_KEY` (marketplace usually has it) **or** activate [Clerk’s Supabase integration](https://dashboard.clerk.com/setup/supabase) and add Clerk as a third-party provider in **Supabase → Authentication → Sign In / Providers** with domain `helped-pipefish-6125.clerk.accounts.dev`.
 
 Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Those must be paths (`/sign-in`), and this app ignores them and uses `/sign-in` and `/sign-up` in code. Delete those Vercel env vars if they contain `sk_` or `pk_` values.
 

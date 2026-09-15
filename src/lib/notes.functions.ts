@@ -12,48 +12,90 @@ import {
   polishTranscript,
   transcribeAudio,
 } from './openrouter'
-import { createClerkSupabaseClient } from './supabase'
+import {
+  createClerkSupabaseClient,
+  createServiceSupabaseClient,
+  readJwtClaims,
+} from './supabase'
 
 const SERVER_SESSION_MISSING =
   'Not signed in on the server (this is Clerk, not Supabase RLS). Set CLERK_PUBLISHABLE_KEY to a pk_test_ or pk_live_ key in Vercel — not a pasted docs page — then redeploy.'
 
+const CLERK_SUPABASE_SETUP =
+  'Clerk is signed in, but Supabase still sees an anonymous request. Activate the Clerk Supabase integration (dashboard.clerk.com/setup/supabase), add Clerk as a third-party provider in Supabase Auth, and set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY on Vercel (server-only).'
+
+type ClerkSessionAuth = {
+  isAuthenticated?: boolean
+  userId?: string | null
+  getToken?: (options?: { skipCache?: boolean }) => Promise<string | null>
+}
+
 async function requireUser(sessionToken?: string | null) {
+  const fromClient = sessionToken?.trim() || null
+  let userId: string | null = null
+  let token = fromClient
+
   try {
-    const session = await auth()
+    const session = (await auth()) as ClerkSessionAuth
     if (session.isAuthenticated && session.userId) {
-      return {
-        userId: session.userId,
-        supabase: createClerkSupabaseClient(() => session.getToken()),
+      userId = session.userId
+      if (!token && typeof session.getToken === 'function') {
+        token = (await session.getToken({ skipCache: true })) ?? null
       }
     }
   } catch (error) {
     console.error('Clerk auth() failed', error)
   }
 
-  const token = sessionToken?.trim()
-  const secretKey = getServerClerkSecretKey()
-  if (token && isClerkSecretKey(secretKey)) {
-    try {
-      const payload = await verifyToken(token, { secretKey })
-      if (payload.sub) {
-        return {
-          userId: payload.sub,
-          supabase: createClerkSupabaseClient(async () => token),
-        }
+  if (!userId && token) {
+    const secretKey = getServerClerkSecretKey()
+    if (isClerkSecretKey(secretKey)) {
+      try {
+        const payload = await verifyToken(token, { secretKey })
+        userId = payload.sub ?? null
+      } catch (error) {
+        console.error('Clerk session token verify failed', error)
       }
-    } catch (error) {
-      console.error('Clerk session token verify failed', error)
     }
   }
 
-  throw new Error(SERVER_SESSION_MISSING)
+  if (!userId) {
+    throw new Error(SERVER_SESSION_MISSING)
+  }
+
+  const service = createServiceSupabaseClient()
+  if (service) {
+    return { userId, supabase: service }
+  }
+
+  if (!token) {
+    throw new Error(CLERK_SUPABASE_SETUP)
+  }
+
+  const claims = readJwtClaims(token)
+  if (claims.role !== 'authenticated' || (claims.sub && claims.sub !== userId)) {
+    throw new Error(CLERK_SUPABASE_SETUP)
+  }
+
+  return {
+    userId,
+    supabase: createClerkSupabaseClient(async () => token),
+  }
 }
 
 export const fetchLibrary = createServerFn({ method: 'GET' }).handler(async () => {
-  const { supabase } = await requireUser()
+  const { supabase, userId } = await requireUser()
   const [notesRes, dictRes] = await Promise.all([
-    supabase.from('notes').select('*').order('created_at', { ascending: false }),
-    supabase.from('dictionary_entries').select('*').order('word', { ascending: true }),
+    supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('dictionary_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .order('word', { ascending: true }),
   ])
 
   if (notesRes.error) throw new Error(notesRes.error.message)
@@ -68,11 +110,12 @@ export const fetchLibrary = createServerFn({ method: 'GET' }).handler(async () =
 export const fetchNote = createServerFn({ method: 'GET' })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    const { supabase } = await requireUser()
+    const { supabase, userId } = await requireUser()
     const { data: note, error } = await supabase
       .from('notes')
       .select('*')
       .eq('id', data.id)
+      .eq('user_id', userId)
       .single()
     if (error) throw new Error(error.message)
     return note as Note
@@ -81,8 +124,12 @@ export const fetchNote = createServerFn({ method: 'GET' })
 export const deleteNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    const { supabase } = await requireUser()
-    const { error } = await supabase.from('notes').delete().eq('id', data.id)
+    const { supabase, userId } = await requireUser()
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', data.id)
+      .eq('user_id', userId)
     if (error) throw new Error(error.message)
     return { ok: true }
   })
@@ -139,7 +186,7 @@ export const processRecording = createServerFn({ method: 'POST' })
 
     if (error) {
       throw new Error(
-        `Could not save to Supabase (${error.message}). Confirm the notes table exists and Clerk is added as a third-party auth provider.`,
+        `Could not save to Supabase (${error.message}). ${CLERK_SUPABASE_SETUP}`,
       )
     }
 
