@@ -30,11 +30,7 @@ export function TabBar() {
                     : 'flex h-10 w-10 items-center justify-center rounded-full text-nota-ink'
                 }
               >
-                <tab.icon
-                  size={20}
-                  strokeWidth={1.6}
-                  fill={isActive ? 'currentColor' : 'none'}
-                />
+                <tab.icon size={20} strokeWidth={isActive ? 2.1 : 1.6} />
               </span>
               {tab.label}
             </>

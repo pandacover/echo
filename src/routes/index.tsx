@@ -2,8 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useRouter } from '@tanstack/react-router'
 import { AppShell } from '~/components/AppShell'
 import { Recorder } from '~/components/Recorder'
-import { WelcomeGate } from '~/components/WelcomeGate'
-import { AuthSwitch } from '~/components/AuthSwitch'
 import { fetchLibrary } from '~/lib/notes.functions'
 
 export const Route = createFileRoute('/')({
@@ -25,15 +23,10 @@ function Home() {
 
   return (
     <AppShell wordCount={wordCount}>
-      <AuthSwitch
-        signedIn={
-          <Recorder
-            onSaved={() => {
-              void router.invalidate()
-            }}
-          />
-        }
-        signedOut={<WelcomeGate />}
+      <Recorder
+        onSaved={() => {
+          void router.invalidate()
+        }}
       />
     </AppShell>
   )

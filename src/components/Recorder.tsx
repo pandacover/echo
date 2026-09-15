@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAuth, useClerk } from '@clerk/tanstack-react-start'
 import { useServerFn } from '@tanstack/react-start'
 import { useNavigate } from '@tanstack/react-router'
 import { RecordButton } from './RecordButton'
@@ -43,6 +44,8 @@ function pickMimeType() {
 export function Recorder({ onSaved }: { onSaved?: () => void }) {
   const navigate = useNavigate()
   const process = useServerFn(processRecording)
+  const { isSignedIn } = useAuth()
+  const { openSignIn } = useClerk()
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const startedAtRef = useRef(0)
@@ -146,6 +149,10 @@ export function Recorder({ onSaved }: { onSaved?: () => void }) {
 
   const onToggle = async () => {
     if (busy) return
+    if (!isSignedIn) {
+      openSignIn({ forceRedirectUrl: '/' })
+      return
+    }
     try {
       if (recording) {
         await finishRecording()

@@ -22,9 +22,9 @@ export function InstallPrompt() {
 
   return (
     <div className="install-banner px-5 pb-2">
-      <div className="flex items-center justify-between rounded-2xl border border-nota-line bg-white/80 px-4 py-3 text-sm shadow-sm">
-        <p className="pr-3 text-nota-ink">Install Nota on your home screen</p>
-        <div className="flex shrink-0 gap-2">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-nota-line bg-white/80 px-4 py-3 text-sm shadow-sm">
+        <p className="min-w-0 flex-1 text-nota-ink">Install Nota on your home screen</p>
+        <div className="flex shrink-0 items-center gap-2">
           <button
             className="text-nota-muted"
             onClick={() => {
