@@ -12,6 +12,10 @@ import {
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
 import { NotFound } from '~/components/NotFound'
 import { RegisterSW } from '~/components/RegisterSW'
+import {
+  getClientClerkPublishableKey,
+  isClerkPublishableKey,
+} from '~/lib/clerk-env'
 import appCss from '~/styles/app.css?url'
 
 const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
@@ -73,8 +77,20 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const publishableKey = getClientClerkPublishableKey()
+  const document = (
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  )
+
+  if (!isClerkPublishableKey(publishableKey)) {
+    return document
+  }
+
   return (
     <ClerkProvider
+      publishableKey={publishableKey}
       appearance={{
         variables: {
           colorPrimary: '#c45c3e',
@@ -84,9 +100,7 @@ function RootComponent() {
         },
       }}
     >
-      <RootDocument>
-        <Outlet />
-      </RootDocument>
+      {document}
     </ClerkProvider>
   )
 }

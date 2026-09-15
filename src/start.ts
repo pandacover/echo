@@ -4,6 +4,12 @@ import {
   createMiddleware,
   createStart,
 } from '@tanstack/react-start'
+import {
+  describeClerkKey,
+  getServerClerkPublishableKey,
+  getServerClerkSecretKey,
+  isClerkPublishableKey,
+} from './lib/clerk-env'
 
 const csrfMiddleware = createCsrfMiddleware({
   // GET server functions run during SSR (auth, library). Address-bar and
@@ -13,33 +19,39 @@ const csrfMiddleware = createCsrfMiddleware({
     ctx.handlerType === 'serverFn' && ctx.request.method !== 'GET',
 })
 
-const clerk = clerkMiddleware()
+const unsignedAuth = {
+  auth: () => ({
+    userId: null,
+    isAuthenticated: false,
+  }),
+}
+
+const clerk = clerkMiddleware({
+  publishableKey: getServerClerkPublishableKey(),
+  secretKey: getServerClerkSecretKey(),
+})
 
 const safeClerkMiddleware = createMiddleware().server(async (ctx) => {
+  const publishableKey = getServerClerkPublishableKey()
+  const secretKey = getServerClerkSecretKey()
+
+  if (!isClerkPublishableKey(publishableKey) || !secretKey) {
+    console.warn(
+      `Skipping Clerk middleware (${describeClerkKey(publishableKey)}; secret ${secretKey ? 'set' : 'missing'}). Expected pk_test_ or pk_live_ with no quotes.`,
+    )
+    return ctx.next({ context: unsignedAuth })
+  }
+
   const clerkServer = clerk.options.server
   if (!clerkServer) {
-    return ctx.next({
-      context: {
-        auth: () => ({
-          userId: null,
-          isAuthenticated: false,
-        }),
-      },
-    })
+    return ctx.next({ context: unsignedAuth })
   }
 
   try {
     return await clerkServer(ctx)
   } catch (error) {
     console.error('Clerk middleware failed', error)
-    return ctx.next({
-      context: {
-        auth: () => ({
-          userId: null,
-          isAuthenticated: false,
-        }),
-      },
-    })
+    return ctx.next({ context: unsignedAuth })
   }
 })
 
