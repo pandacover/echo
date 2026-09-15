@@ -18,7 +18,7 @@ export function TabBar() {
           <Link
             key={tab.to}
             to={tab.to}
-            preload="intent"
+            preload="render"
             activeOptions={{ exact: tab.exact }}
             className="flex flex-col items-center gap-0.5 py-0.5 text-[11px] text-nota-muted"
             activeProps={{

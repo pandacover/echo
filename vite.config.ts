@@ -44,7 +44,24 @@ export default defineConfig({
   },
   plugins: [
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        codeSplittingOptions: {
+          splitBehavior: ({ routeId }) => {
+            switch (routeId) {
+              case '/_app':
+              case '/_app/':
+              case '/_app/notes':
+              case '/_app/notes/':
+              case '/_app/dictionary':
+                return []
+              default:
+                return undefined
+            }
+          },
+        },
+      },
+    }),
     // Vercel's default Nitro web handler overwrites srvx `runtime.node`,
     // which crashes TanStack SSR as an unhandled HTTPError. Node entry
     // keeps the Node request context. Local builds still use node-server.
