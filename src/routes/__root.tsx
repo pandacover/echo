@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { ClerkProvider } from '@clerk/tanstack-react-start'
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
 import { createServerFn } from '@tanstack/react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
 import * as React from 'react'
@@ -16,6 +16,7 @@ import {
   getClientClerkPublishableKey,
   isClerkPublishableKey,
 } from '~/lib/clerk-env'
+import { getSessionUserId, rememberSessionUserId } from '~/lib/session'
 import appCss from '~/styles/app.css?url'
 
 const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
@@ -29,10 +30,17 @@ const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const Route = createRootRoute({
-  staleTime: 60_000,
-  beforeLoad: async () => {
-    const { userId } = await fetchClerkAuth()
-    return { userId }
+  staleTime: Infinity,
+  shouldReload: false,
+  beforeLoad: () => {
+    const cached = getSessionUserId()
+    if (cached !== undefined) {
+      return { userId: cached }
+    }
+    return fetchClerkAuth().then(({ userId }) => {
+      rememberSessionUserId(userId)
+      return { userId }
+    })
   },
   head: () => ({
     meta: [
@@ -78,6 +86,8 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const { userId } = Route.useRouteContext()
+  rememberSessionUserId(userId ?? null)
   const publishableKey = getClientClerkPublishableKey()
   const document = (
     <RootDocument>
@@ -105,9 +115,16 @@ function RootComponent() {
         },
       }}
     >
+      <ClerkSessionSync />
       {document}
     </ClerkProvider>
   )
+}
+
+function ClerkSessionSync() {
+  const { isLoaded, userId } = useAuth()
+  if (isLoaded) rememberSessionUserId(userId ?? null)
+  return null
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {

@@ -9,7 +9,8 @@ const emptyLibrary = {
 }
 
 export const Route = createFileRoute('/_app')({
-  staleTime: 30_000,
+  staleTime: Infinity,
+  shouldReload: false,
   loader: async ({ context }) => {
     if (!context.userId) return emptyLibrary
     try {
