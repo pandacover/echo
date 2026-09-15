@@ -1,8 +1,41 @@
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import { defineConfig } from 'vite'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { defineConfig, type Plugin } from 'vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
+
+function stampServiceWorker(): Plugin {
+  const version =
+    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || Date.now().toString()
+
+  const stamp = (file: string) => {
+    if (!existsSync(file)) return
+    const source = readFileSync(file, 'utf8')
+    if (!source.includes('__SW_BUILD__')) return
+    writeFileSync(file, source.replaceAll('__SW_BUILD__', version))
+  }
+
+  const stampOutputs = () => {
+    for (const dir of ['.output/public', 'dist', '.vercel/output/static']) {
+      stamp(path.resolve(dir, 'sw.js'))
+    }
+  }
+
+  return {
+    name: 'stamp-service-worker',
+    apply: 'build',
+    enforce: 'post',
+    closeBundle: {
+      sequential: true,
+      order: 'post',
+      handler() {
+        stampOutputs()
+      },
+    },
+  }
+}
 
 export default defineConfig({
   server: {
@@ -25,6 +58,7 @@ export default defineConfig({
       },
     }),
     viteReact(),
+    stampServiceWorker(),
   ],
   resolve: {
     tsconfigPaths: true,

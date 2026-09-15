@@ -15,11 +15,12 @@ export function AppShell({
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-nota-bg">
       <header className="flex items-center justify-between px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
         <Link to="/" className="font-serif text-[40px] leading-none tracking-tight">
-          Nota
+          Echo
         </Link>
         <div className="flex items-center gap-3">
           <Link
             to="/dictionary"
+            preload="intent"
             className="inline-flex items-center gap-1.5 rounded-full border border-nota-terracotta/30 bg-white/40 px-3 py-1.5 text-[13px] font-medium text-nota-terracotta"
           >
             <BookOpen size={14} strokeWidth={1.75} />
@@ -36,7 +37,9 @@ export function AppShell({
           </Show>
         </div>
       </header>
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+        {children}
+      </main>
       <InstallPrompt />
       <TabBar />
     </div>

@@ -1,4 +1,5 @@
-const CACHE = 'nota-static-v1'
+const BUILD = '__SW_BUILD__'
+const CACHE = `echo-static-${BUILD}`
 const PRECACHE = [
   '/manifest.webmanifest',
   '/android-chrome-192x192.png',
@@ -7,12 +8,7 @@ const PRECACHE = [
 ]
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting()),
-  )
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)))
 })
 
 self.addEventListener('activate', (event) => {
@@ -24,6 +20,12 @@ self.addEventListener('activate', (event) => {
       )
       .then(() => self.clients.claim()),
   )
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    void self.skipWaiting()
+  }
 })
 
 self.addEventListener('fetch', (event) => {
@@ -42,12 +44,14 @@ self.addEventListener('fetch', (event) => {
   if (/\.(?:js|css|png|svg|ico|webmanifest|woff2)$/.test(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => {
-        if (cached) return cached
-        return fetch(request).then((response) => {
-          const copy = response.clone()
-          void caches.open(CACHE).then((cache) => cache.put(request, copy))
+        const network = fetch(request).then((response) => {
+          if (response.ok) {
+            const copy = response.clone()
+            void caches.open(CACHE).then((cache) => cache.put(request, copy))
+          }
           return response
         })
+        return cached || network
       }),
     )
   }

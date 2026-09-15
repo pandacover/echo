@@ -64,7 +64,7 @@ export function createServiceSupabaseClient(): SupabaseClient<Database> | null {
     global: {
       headers: {
         // Secret keys are rejected when the User-Agent looks like a browser.
-        'User-Agent': 'NotaServer/1.0',
+        'User-Agent': 'EchoServer/1.0',
       },
     },
   })

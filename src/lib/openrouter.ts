@@ -21,8 +21,8 @@ export async function transcribeAudio(params: {
     headers: {
       Authorization: `Bearer ${params.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://nota.app',
-      'X-Title': 'Nota',
+      'HTTP-Referer': 'https://echo.app',
+      'X-Title': 'Echo',
     },
     body: JSON.stringify({
       model: WHISPER_MODEL,
@@ -51,8 +51,8 @@ export async function polishTranscript(params: {
     headers: {
       Authorization: `Bearer ${params.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://nota.app',
-      'X-Title': 'Nota',
+      'HTTP-Referer': 'https://echo.app',
+      'X-Title': 'Echo',
     },
     body: JSON.stringify({
       model: CLEANUP_MODEL,
