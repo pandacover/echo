@@ -9,12 +9,15 @@ import {
   getServerClerkPublishableKey,
   getServerClerkSecretKey,
   isClerkPublishableKey,
-} from './lib/clerk-env'
+  isClerkSecretKey,
+} from './lib/clerk-env.server'
+import {
+  CLERK_AFTER_AUTH_PATH,
+  CLERK_SIGN_IN_PATH,
+  CLERK_SIGN_UP_PATH,
+} from './lib/clerk-urls'
 
 const csrfMiddleware = createCsrfMiddleware({
-  // GET server functions run during SSR (auth, library). Address-bar and
-  // Vercel SSO navigations send Sec-Fetch-Site none/cross-site, which the
-  // default matcher rejects and Nitro then surfaces as HTTPError 500.
   filter: (ctx) =>
     ctx.handlerType === 'serverFn' && ctx.request.method !== 'GET',
 })
@@ -26,18 +29,26 @@ const unsignedAuth = {
   }),
 }
 
+const clerkPaths = {
+  signInUrl: CLERK_SIGN_IN_PATH,
+  signUpUrl: CLERK_SIGN_UP_PATH,
+  signInFallbackRedirectUrl: CLERK_AFTER_AUTH_PATH,
+  signUpFallbackRedirectUrl: CLERK_AFTER_AUTH_PATH,
+}
+
 const clerk = clerkMiddleware({
   publishableKey: getServerClerkPublishableKey(),
   secretKey: getServerClerkSecretKey(),
+  ...clerkPaths,
 })
 
 const safeClerkMiddleware = createMiddleware().server(async (ctx) => {
   const publishableKey = getServerClerkPublishableKey()
   const secretKey = getServerClerkSecretKey()
 
-  if (!isClerkPublishableKey(publishableKey) || !secretKey) {
+  if (!isClerkPublishableKey(publishableKey) || !isClerkSecretKey(secretKey)) {
     console.warn(
-      `Skipping Clerk middleware (${describeClerkKey(publishableKey)}; secret ${secretKey ? 'set' : 'missing'}). Expected pk_test_ or pk_live_ with no quotes.`,
+      `Skipping Clerk middleware (${describeClerkKey(publishableKey)}; secret ${isClerkSecretKey(secretKey) ? 'set' : 'invalid'}). Expected pk_/sk_ keys, not URLs.`,
     )
     return ctx.next({ context: unsignedAuth })
   }
