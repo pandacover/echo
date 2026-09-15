@@ -1,27 +1,66 @@
-function stripEnvQuotes(value: string | undefined): string {
-  return (value ?? '').trim().replace(/^["']|["']$/g, '')
-}
+import { getClientClerkPublishableKey } from './clerk-env'
+import {
+  describeClerkKey,
+  isClerkPublishableKey,
+  isClerkSecretKey,
+  resolveClerkPublishableKey,
+  resolveClerkSecretKey,
+} from './clerk-keys'
 
-export function isClerkPublishableKey(value: string): boolean {
-  return value.startsWith('pk_test_') || value.startsWith('pk_live_')
-}
+export {
+  describeClerkKey,
+  isClerkPublishableKey,
+  isClerkSecretKey,
+} from './clerk-keys'
 
-export function isClerkSecretKey(value: string): boolean {
-  return value.startsWith('sk_test_') || value.startsWith('sk_live_')
-}
-
-/** Prefer the non-VITE server key so Vite build inlining cannot shadow it. */
+/** Prefer a real pk_ over a pasted docs page, including the Vite-inlined client key. */
 export function getServerClerkPublishableKey(): string {
-  return stripEnvQuotes(
-    process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY,
-  )
+  return resolveClerkPublishableKey([
+    process.env.CLERK_PUBLISHABLE_KEY,
+    process.env.VITE_CLERK_PUBLISHABLE_KEY,
+    getClientClerkPublishableKey(),
+  ])
 }
 
 export function getServerClerkSecretKey(): string {
-  return stripEnvQuotes(process.env.CLERK_SECRET_KEY)
+  return resolveClerkSecretKey([process.env.CLERK_SECRET_KEY])
 }
 
-export function describeClerkKey(value: string): string {
-  if (!value) return 'empty'
-  return `length=${value.length} prefix=${value.slice(0, 8)}`
+/**
+ * Clerk's own SDK reads process.env / VITE_ keys directly. Rewrite those values
+ * to extracted pk_/sk_ tokens so authenticateRequest is not handed a markdown paste.
+ */
+export function sanitizeClerkProcessEnv(): {
+  publishableKey: string
+  secretKey: string
+  rewritten: boolean
+} {
+  const before = process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY || ''
+  const publishableKey = getServerClerkPublishableKey()
+  const secretKey = getServerClerkSecretKey()
+  let rewritten = false
+
+  if (isClerkPublishableKey(publishableKey)) {
+    if (process.env.CLERK_PUBLISHABLE_KEY !== publishableKey) {
+      process.env.CLERK_PUBLISHABLE_KEY = publishableKey
+      rewritten = true
+    }
+    if (process.env.VITE_CLERK_PUBLISHABLE_KEY !== publishableKey) {
+      process.env.VITE_CLERK_PUBLISHABLE_KEY = publishableKey
+      rewritten = true
+    }
+  }
+
+  if (isClerkSecretKey(secretKey) && process.env.CLERK_SECRET_KEY !== secretKey) {
+    process.env.CLERK_SECRET_KEY = secretKey
+    rewritten = true
+  }
+
+  if (rewritten) {
+    console.info(
+      `Normalized Clerk env keys (${describeClerkKey(before)} -> ${describeClerkKey(publishableKey)})`,
+    )
+  }
+
+  return { publishableKey, secretKey, rewritten }
 }

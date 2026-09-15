@@ -75,7 +75,9 @@ Open [http://localhost:3000](http://localhost:3000), sign in, and allow the micr
 | `CLERK_SECRET_KEY` | Must start with `sk_test_` or `sk_live_` (no quotes) |
 | `OPENROUTER_API_KEY` | From OpenRouter |
 
-Paste keys without wrapping quotes. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
+Paste **only** the key value (it must start with `pk_` / `sk_`). Do not paste a markdown docs page or a `# Add Clerk…` comment block into the key field. After saving, use **Deployments → ⋮ → Redeploy** so the new values are injected.
+
+If recording finishes with a server-session error, that is Clerk middleware failing to see the signed-in user — not Supabase RLS. RLS failures say `Could not save to Supabase`.
 
 Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Those must be paths (`/sign-in`), and this app ignores them and uses `/sign-in` and `/sign-up` in code. Delete those Vercel env vars if they contain `sk_` or `pk_` values.
 

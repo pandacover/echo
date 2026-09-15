@@ -44,7 +44,7 @@ function pickMimeType() {
 export function Recorder({ onSaved }: { onSaved?: () => void }) {
   const navigate = useNavigate()
   const process = useServerFn(processRecording)
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, getToken } = useAuth()
   const { openSignIn } = useClerk()
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -137,6 +137,8 @@ export function Recorder({ onSaved }: { onSaved?: () => void }) {
       const form = new FormData()
       form.append('audio', blob, `note.${blob.type.includes('mp4') ? 'm4a' : 'webm'}`)
       form.append('duration', String(duration))
+      const clerkToken = await getToken()
+      if (clerkToken) form.append('clerkToken', clerkToken)
       const result = await process({ data: form })
       onSaved?.()
       await navigate({ to: '/notes/$noteId', params: { noteId: result.note.id } })
@@ -145,7 +147,7 @@ export function Recorder({ onSaved }: { onSaved?: () => void }) {
     } finally {
       setBusy(false)
     }
-  }, [navigate, onSaved, process, stream])
+  }, [getToken, navigate, onSaved, process, stream])
 
   const onToggle = async () => {
     if (busy) return

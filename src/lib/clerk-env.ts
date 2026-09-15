@@ -1,16 +1,15 @@
-function stripEnvQuotes(value: string | undefined): string {
-  return (value ?? '').trim().replace(/^["']|["']$/g, '')
-}
+import {
+  describeClerkKey,
+  isClerkPublishableKey,
+  resolveClerkPublishableKey,
+} from './clerk-keys'
 
-export function isClerkPublishableKey(value: string): boolean {
-  return value.startsWith('pk_test_') || value.startsWith('pk_live_')
-}
+export {
+  describeClerkKey,
+  isClerkPublishableKey,
+  stripEnvQuotes,
+} from './clerk-keys'
 
 export function getClientClerkPublishableKey(): string {
-  return stripEnvQuotes(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
-}
-
-export function describeClerkKey(value: string): string {
-  if (!value) return 'empty'
-  return `length=${value.length} prefix=${value.slice(0, 8)}`
+  return resolveClerkPublishableKey([import.meta.env.VITE_CLERK_PUBLISHABLE_KEY])
 }

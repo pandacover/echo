@@ -10,12 +10,15 @@ import {
   getServerClerkSecretKey,
   isClerkPublishableKey,
   isClerkSecretKey,
+  sanitizeClerkProcessEnv,
 } from './lib/clerk-env.server'
 import {
   CLERK_AFTER_AUTH_PATH,
   CLERK_SIGN_IN_PATH,
   CLERK_SIGN_UP_PATH,
 } from './lib/clerk-urls'
+
+sanitizeClerkProcessEnv()
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) =>
@@ -36,10 +39,14 @@ const clerkPaths = {
   signUpFallbackRedirectUrl: CLERK_AFTER_AUTH_PATH,
 }
 
-const clerk = clerkMiddleware({
-  publishableKey: getServerClerkPublishableKey(),
-  secretKey: getServerClerkSecretKey(),
-  ...clerkPaths,
+const clerk = clerkMiddleware(() => {
+  const publishableKey = getServerClerkPublishableKey()
+  const secretKey = getServerClerkSecretKey()
+  return {
+    ...(isClerkPublishableKey(publishableKey) ? { publishableKey } : {}),
+    ...(isClerkSecretKey(secretKey) ? { secretKey } : {}),
+    ...clerkPaths,
+  }
 })
 
 const safeClerkMiddleware = createMiddleware().server(async (ctx) => {
@@ -48,7 +55,7 @@ const safeClerkMiddleware = createMiddleware().server(async (ctx) => {
 
   if (!isClerkPublishableKey(publishableKey) || !isClerkSecretKey(secretKey)) {
     console.warn(
-      `Skipping Clerk middleware (${describeClerkKey(publishableKey)}; secret ${isClerkSecretKey(secretKey) ? 'set' : 'invalid'}). Expected pk_/sk_ keys, not URLs.`,
+      `Skipping Clerk middleware (${describeClerkKey(publishableKey)}; secret ${isClerkSecretKey(secretKey) ? 'set' : 'invalid'}). Expected pk_/sk_ keys, not a pasted docs page.`,
     )
     return ctx.next({ context: unsignedAuth })
   }

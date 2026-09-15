@@ -1,23 +1,52 @@
-import { createServerFn } from '@tanstack/react-start'
+import { verifyToken } from '@clerk/backend'
 import { auth } from '@clerk/tanstack-react-start/server'
-import { createClerkSupabaseClient } from './supabase'
+import { createServerFn } from '@tanstack/react-start'
+import type { DictionaryEntry, Note } from './database.types'
+import {
+  getServerClerkSecretKey,
+  isClerkSecretKey,
+} from './clerk-env.server'
 import {
   countWords,
   formatFromMime,
   polishTranscript,
   transcribeAudio,
 } from './openrouter'
-import type { DictionaryEntry, Note } from './database.types'
+import { createClerkSupabaseClient } from './supabase'
 
-async function requireUser() {
-  const { isAuthenticated, userId, getToken } = await auth()
-  if (!isAuthenticated || !userId) {
-    throw new Error('Unauthorized')
+const SERVER_SESSION_MISSING =
+  'Not signed in on the server (this is Clerk, not Supabase RLS). Set CLERK_PUBLISHABLE_KEY to a pk_test_ or pk_live_ key in Vercel — not a pasted docs page — then redeploy.'
+
+async function requireUser(sessionToken?: string | null) {
+  try {
+    const session = await auth()
+    if (session.isAuthenticated && session.userId) {
+      return {
+        userId: session.userId,
+        supabase: createClerkSupabaseClient(() => session.getToken()),
+      }
+    }
+  } catch (error) {
+    console.error('Clerk auth() failed', error)
   }
-  return {
-    userId,
-    supabase: createClerkSupabaseClient(() => getToken()),
+
+  const token = sessionToken?.trim()
+  const secretKey = getServerClerkSecretKey()
+  if (token && isClerkSecretKey(secretKey)) {
+    try {
+      const payload = await verifyToken(token, { secretKey })
+      if (payload.sub) {
+        return {
+          userId: payload.sub,
+          supabase: createClerkSupabaseClient(async () => token),
+        }
+      }
+    } catch (error) {
+      console.error('Clerk session token verify failed', error)
+    }
   }
+
+  throw new Error(SERVER_SESSION_MISSING)
 }
 
 export const fetchLibrary = createServerFn({ method: 'GET' }).handler(async () => {
@@ -73,7 +102,8 @@ export const processRecording = createServerFn({ method: 'POST' })
       )
     }
 
-    const { supabase, userId } = await requireUser()
+    const sessionToken = String(data.get('clerkToken') || '')
+    const { supabase, userId } = await requireUser(sessionToken)
     const audio = data.get('audio')
     const duration = Number(data.get('duration') || 0)
     if (!(audio instanceof File)) {
