@@ -8,15 +8,14 @@ const tabs = [
 ] as const
 
 /** Same inset on every side, measured to the icon chip. */
-const NAV_PAD = 6
-/** Previous highlight was ~44px; +25% → 55, then a little extra to fill the taller pill. */
-const ICON_H = 58
+const NAV_PAD = 4.5
+const ICON_H = 43.5
 /** Wider than tall so the active chip is a stadium, not a circle. */
-const ICON_W = 88
-const ICON_GAP = 4
+const ICON_W = 66
+const ICON_GAP = 3
 /** Glyph fills most of the chip; slightly wider than tall. */
-const GLYPH_H = 36
-const GLYPH_W = 44
+const GLYPH_H = 27
+const GLYPH_W = 33
 const SLOT = ICON_W + ICON_GAP
 
 function tabIndex(pathname: string) {
