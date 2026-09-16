@@ -1,7 +1,6 @@
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { animate } from 'animejs'
-import { X } from 'lucide-react'
 import { blinkStrokes, ovalPath, type EyeSide } from '~/lib/echo-eyes'
 import { GAZE_HOME, pickGaze, type GazeOffset } from '~/lib/echo-gaze'
 import {
@@ -484,14 +483,6 @@ export function EchoInstallDemo({
                 </button>
               </div>
             </div>
-            <button
-              type="button"
-              aria-label="Close"
-              className="absolute left-2.5 top-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/85 text-nota-ink shadow-sm"
-              onClick={close}
-            >
-              <X size={16} strokeWidth={2} />
-            </button>
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center">

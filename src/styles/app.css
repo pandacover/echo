@@ -130,8 +130,8 @@
 .echo-bubble {
   position: absolute;
   z-index: 2;
-  width: max-content;
-.max-width: min(12.5rem, 54vw);
+  width: 13rem;
+  max-width: calc(100vw - 2.5rem);
   overflow-wrap: break-word;
   border-radius: 1.05rem;
   border: 1px solid rgb(196 92 62 / 0.28);
