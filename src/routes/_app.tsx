@@ -28,7 +28,7 @@ export const Route = createFileRoute('/_app')({
 })
 
 function AppLayout() {
-  const { dictionary, quota } = Route.useLoaderData()
+  const { quota } = Route.useLoaderData()
   const { userId } = Route.useRouteContext()
   const { isSignedIn, isLoaded } = useAuth()
   const remainingSeconds = resolveDisplayedRemaining(quota, {
@@ -38,7 +38,7 @@ function AppLayout() {
 
   return (
     <QuotaSessionProvider remainingSeconds={remainingSeconds}>
-      <AppShell wordCount={dictionary.length}>
+      <AppShell>
         <Outlet />
       </AppShell>
     </QuotaSessionProvider>
