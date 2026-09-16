@@ -4,23 +4,19 @@ import { animate } from 'animejs'
 import { blinkStrokes, ovalPath, type EyeSide } from '~/lib/echo-eyes'
 import { GAZE_HOME, pickGaze, type GazeOffset } from '~/lib/echo-gaze'
 import {
+  ECHO_SIZE,
+  FRAME_FOOTER_H,
   INSTALL_STEPS,
-  boxCenter,
-  bubbleSide,
   containedImageRect,
   demoFrameRect,
+  echoRestPosition,
   hotspotCornerRadius,
   hotspotRect,
   installStep,
   isLastInstallStep,
   nextInstallIndex,
-  orbitPoint,
-  orbitRadii,
   type BubbleSide,
 } from '~/lib/echo-install'
-
-const ECHO_SIZE = 36
-const FOOTER_H = 56
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -172,6 +168,31 @@ function applyBox(
   el.style.borderRadius = `${box.r}px`
 }
 
+function applyEcho(el: HTMLElement, x: number, y: number) {
+  el.style.left = `${x - ECHO_SIZE / 2}px`
+  el.style.top = `${y - ECHO_SIZE / 2}px`
+}
+
+function stageBox(frameBox: { x: number; y: number; w: number; h: number }) {
+  return { x: frameBox.x, y: frameBox.y, w: frameBox.w, h: Math.max(0, frameBox.h - FRAME_FOOTER_H) }
+}
+
+function restOnStage(
+  frameBox: { x: number; y: number; w: number; h: number },
+  step: (typeof INSTALL_STEPS)[number],
+) {
+  const stage = stageBox(frameBox)
+  const image = containedImageRect(stage.w, stage.h, step.imageWidth, step.imageHeight)
+  const hot = hotspotRect(image, step.hotspot)
+  const rest = echoRestPosition(hot, stage.w, stage.h, step.bias)
+  return {
+    x: stage.x + rest.x,
+    y: stage.y + rest.y,
+    side: rest.side,
+    hot: { x: hot.x, y: hot.y, w: hot.w, h: hot.h, r: hotspotCornerRadius(hot) },
+  }
+}
+
 export function EchoInstallDemo({
   origin,
   onClose,
@@ -180,69 +201,130 @@ export function EchoInstallDemo({
   onClose: () => void
 }) {
   const frame = useRef<HTMLDivElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
   const echo = useRef<HTMLDivElement>(null)
   const bubble = useRef<HTMLDivElement>(null)
+  const pinBottom = useRef<number | null>(null)
+  const echoPos = useRef({ x: origin.left + origin.width / 2, y: origin.top + origin.height / 2 })
   const [stepIndex, setStepIndex] = useState(0)
   const [ready, setReady] = useState(false)
-  const [stageSize, setStageSize] = useState({ w: 0, h: 0 })
+  const [hot, setHot] = useState({ x: 0, y: 0, w: 0, h: 0, r: 16 })
   const reduced = useRef(false)
+  const closing = useRef(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   const step = installStep(stepIndex)
   const last = isLastInstallStep(stepIndex)
 
+  const showBubble = (side: BubbleSide, visible: boolean) => {
+    const bubbleEl = bubble.current
+    if (!bubbleEl) return
+    bubbleEl.dataset.side = side
+    positionBubble(bubbleEl, side)
+    bubbleEl.style.opacity = visible ? '1' : '0'
+  }
+
+  const moveEcho = (toX: number, toY: number, side: BubbleSide, duration: number) => {
+    const echoEl = echo.current
+    if (!echoEl) return
+    const from = { ...echoPos.current }
+    if (reduced.current || duration === 0) {
+      echoPos.current = { x: toX, y: toY }
+      applyEcho(echoEl, toX, toY)
+      showBubble(side, true)
+      return
+    }
+    showBubble(side, false)
+    const box = { x: from.x, y: from.y }
+    animate(box, {
+      x: toX,
+      y: toY,
+      duration,
+      ease: 'inOutCubic',
+      onRender: () => {
+        echoPos.current = { x: box.x, y: box.y }
+        applyEcho(echoEl, box.x, box.y)
+      },
+      onComplete: () => {
+        echoPos.current = { x: toX, y: toY }
+        applyEcho(echoEl, toX, toY)
+        showBubble(side, true)
+      },
+    })
+  }
+
   useLayoutEffect(() => {
     reduced.current = prefersReducedMotion()
     const node = frame.current
-    if (!node) return
-    const target = demoFrameRect(
-      window.innerWidth,
-      window.innerHeight,
-      INSTALL_STEPS[0].imageWidth,
-      INSTALL_STEPS[0].imageHeight,
-    )
-    const from = {
+    const echoEl = echo.current
+    if (!node || !echoEl) return
+    const start = {
       x: origin.left,
       y: origin.top,
       w: origin.width,
       h: origin.height,
       r: origin.width / 2,
     }
-    const to = { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 }
-    applyBox(node, from)
+    const target = demoFrameRect(
+      window.innerWidth,
+      window.innerHeight,
+      INSTALL_STEPS[0].imageWidth,
+      INSTALL_STEPS[0].imageHeight,
+    )
+    pinBottom.current = target.y + target.h
+    const rest = restOnStage(target, INSTALL_STEPS[0])
+    applyBox(node, start)
+    echoPos.current = { x: origin.left + origin.width / 2, y: origin.top + origin.height / 2 }
+    applyEcho(echoEl, echoPos.current.x, echoPos.current.y)
+    showBubble(rest.side, false)
+    setHot(rest.hot)
     if (reduced.current) {
-      applyBox(node, to)
+      applyBox(node, { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 })
+      echoPos.current = { x: rest.x, y: rest.y }
+      applyEcho(echoEl, rest.x, rest.y)
+      showBubble(rest.side, true)
       setReady(true)
       return
     }
-    const box = { ...from }
+    const box = { ...start }
     const animation = animate(box, {
-      x: to.x,
-      y: to.y,
-      w: to.w,
-      h: to.h,
-      r: to.r,
+      x: target.x,
+      y: target.y,
+      w: target.w,
+      h: target.h,
+      r: 28,
       duration: 560,
       ease: 'inOutCubic',
       onRender: () => applyBox(node, box),
       onComplete: () => {
-        applyBox(node, to)
+        applyBox(node, { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 })
         setReady(true)
       },
     })
+    moveEcho(rest.x, rest.y, rest.side, 560)
     return () => {
       animation.revert()
     }
   }, [origin])
 
   useLayoutEffect(() => {
-    if (!ready) return
+    if (!ready || closing.current) return
     const node = frame.current
     if (!node) return
-    const target = demoFrameRect(window.innerWidth, window.innerHeight, step.imageWidth, step.imageHeight)
+    const target = demoFrameRect(
+      window.innerWidth,
+      window.innerHeight,
+      step.imageWidth,
+      step.imageHeight,
+      pinBottom.current ?? undefined,
+    )
+    pinBottom.current = target.y + target.h
+    const rest = restOnStage(target, step)
+    setHot(rest.hot)
     const rect = node.getBoundingClientRect()
     const from = { x: rect.left, y: rect.top, w: rect.width, h: rect.height, r: 28 }
     const to = { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 }
+    if (stepIndex > 0) moveEcho(rest.x, rest.y, rest.side, 480)
     if (Math.abs(from.w - to.w) < 2 && Math.abs(from.h - to.h) < 2) {
       applyBox(node, to)
       return
@@ -258,7 +340,7 @@ export function EchoInstallDemo({
       w: to.w,
       h: to.h,
       r: to.r,
-      duration: 380,
+      duration: 420,
       ease: 'inOutCubic',
       onRender: () => applyBox(node, box),
       onComplete: () => applyBox(node, to),
@@ -266,69 +348,21 @@ export function EchoInstallDemo({
     return () => {
       animation.pause()
     }
-  }, [ready, step.imageHeight, step.imageWidth])
-
-  useLayoutEffect(() => {
-    const node = stage.current
-    if (!node) return
-    const sync = () => {
-      const rect = node.getBoundingClientRect()
-      setStageSize({ w: rect.width, h: rect.height })
-    }
-    sync()
-    const observer = new ResizeObserver(sync)
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [ready, stepIndex])
-
-  useLayoutEffect(() => {
-    if (!ready) return
-    const echoEl = echo.current
-    const bubbleEl = bubble.current
-    if (!echoEl || !bubbleEl || stageSize.w === 0) return
-    const image = containedImageRect(stageSize.w, stageSize.h, step.imageWidth, step.imageHeight)
-    const hot = hotspotRect(image, step.hotspot)
-    const center = boxCenter(hot)
-    const { rx, ry } = orbitRadii(hot, ECHO_SIZE)
-    const place = (angle: number) => {
-      const point = orbitPoint(center.x, center.y, rx, ry, angle)
-      echoEl.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`
-      const side = bubbleSide(point.x, point.y, stageSize.w, stageSize.h)
-      bubbleEl.dataset.side = side
-      positionBubble(bubbleEl, side)
-    }
-    if (reduced.current || stageSize.w === 0) {
-      place(-0.7)
-      return
-    }
-    const state = { angle: -0.7 }
-    const animation = animate(state, {
-      angle: -0.7 + Math.PI * 2,
-      duration: 4200,
-      ease: 'linear',
-      loop: true,
-      onRender: () => place(state.angle),
-    })
-    return () => {
-      animation.revert()
-    }
-  }, [ready, step, stageSize.h, stageSize.w])
-
-  const closing = useRef(false)
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  }, [ready, step])
 
   const close = () => {
     if (closing.current) return
     const node = frame.current
+    const echoEl = echo.current
     const finish = () => onCloseRef.current()
-    if (!node || reduced.current) {
-      closing.current = true
+    closing.current = true
+    if (!node || !echoEl || reduced.current) {
       finish()
       return
     }
-    closing.current = true
-    setReady(false)
+    showBubble('left', false)
+    const home = { x: origin.left + origin.width / 2, y: origin.top + origin.height / 2 }
+    moveEcho(home.x, home.y, 'left', 420)
     const rect = node.getBoundingClientRect()
     const box = { x: rect.left, y: rect.top, w: rect.width, h: rect.height, r: 28 }
     const to = {
@@ -378,10 +412,6 @@ export function EchoInstallDemo({
     setStepIndex(next)
   }
 
-  const image = containedImageRect(stageSize.w, stageSize.h, step.imageWidth, step.imageHeight)
-  const hot = hotspotRect(image, step.hotspot)
-  const radius = hotspotCornerRadius(hot)
-
   return createPortal(
     <div className="fixed inset-0 z-[80]">
       <button
@@ -398,9 +428,7 @@ export function EchoInstallDemo({
         aria-modal="true"
         aria-labelledby="echo-install-title"
         data-testid="echo-install-demo"
-        className={`pointer-events-auto fixed border border-nota-terracotta bg-nota-bg shadow-[0_24px_60px_rgba(28,23,20,0.22)] ${
-          ready ? 'overflow-visible' : 'overflow-hidden'
-        }`}
+        className="pointer-events-auto fixed overflow-hidden border border-nota-terracotta bg-nota-bg shadow-[0_24px_60px_rgba(28,23,20,0.22)]"
         style={{
           left: origin.left,
           top: origin.top,
@@ -412,85 +440,78 @@ export function EchoInstallDemo({
         <h2 id="echo-install-title" className="sr-only">
           How to add Echo to your home screen
         </h2>
-        {ready ? (
-          <div className="flex h-full flex-col">
-            <div ref={stage} className="relative min-h-0 flex-1 overflow-visible bg-nota-blush/40">
-              <div className="absolute inset-0 overflow-hidden rounded-t-[1.65rem]">
-                <img
-                  src={step.image}
-                  alt=""
-                  className="pointer-events-none h-full w-full object-contain"
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="relative min-h-0 flex-1 overflow-hidden bg-nota-blush/50">
+            <img
+              src={step.image}
+              alt=""
+              className="pointer-events-none h-full w-full object-contain"
+            />
+            {hot.w > 0 ? (
+              <div
+                aria-hidden
+                className="echo-hotspot pointer-events-none absolute"
+                style={{
+                  left: hot.x,
+                  top: hot.y,
+                  width: hot.w,
+                  height: hot.h,
+                  borderRadius: hot.r,
+                }}
+              />
+            ) : null}
+          </div>
+          <div
+            className="flex shrink-0 items-center justify-between gap-3 border-t border-nota-terracotta/20 bg-nota-bg px-3.5"
+            style={{ height: FRAME_FOOTER_H }}
+          >
+            <div className="flex items-center gap-1.5" aria-label={`Step ${stepIndex + 1} of ${INSTALL_STEPS.length}`}>
+              {INSTALL_STEPS.map((item, index) => (
+                <span
+                  key={item.id}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === stepIndex ? 'w-4 bg-nota-terracotta' : 'w-1.5 bg-nota-soft'
+                  }`}
                 />
-              </div>
-              {stageSize.w > 0 ? (
-                <>
-                  <div
-                    aria-hidden
-                    className="echo-hotspot pointer-events-none absolute"
-                    style={{
-                      left: hot.x,
-                      top: hot.y,
-                      width: hot.w,
-                      height: hot.h,
-                      borderRadius: radius,
-                    }}
-                  />
-                  <div
-                    ref={echo}
-                    className="pointer-events-none absolute left-0 top-0 z-10 will-change-transform"
-                    style={{ width: ECHO_SIZE, height: ECHO_SIZE }}
-                  >
-                    <EchoIdleFace />
-                    <div ref={bubble} className="echo-bubble" data-side="left" role="status">
-                      {step.story.slice(0, -1).map((line) => (
-                        <p key={line}>{line}</p>
-                      ))}
-                      <p className="font-semibold text-nota-ink">{step.story.at(-1)}</p>
-                    </div>
-                  </div>
-                </>
-              ) : null}
+              ))}
             </div>
-            <div
-              className="flex shrink-0 items-center justify-between gap-3 rounded-b-[1.65rem] border-t border-nota-terracotta/20 bg-nota-bg px-3.5"
-              style={{ height: FOOTER_H }}
-            >
-              <div className="flex items-center gap-1.5" aria-label={`Step ${stepIndex + 1} of ${INSTALL_STEPS.length}`}>
-                {INSTALL_STEPS.map((item, index) => (
-                  <span
-                    key={item.id}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === stepIndex ? 'w-4 bg-nota-terracotta' : 'w-1.5 bg-nota-soft'
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="rounded-full px-3 py-1.5 text-sm text-nota-muted"
-                  onClick={close}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  data-testid="echo-install-next"
-                  className="rounded-full bg-nota-terracotta px-4 py-1.5 text-sm font-semibold text-white"
-                  onClick={goNext}
-                >
-                  {last ? 'Done' : 'Next'}
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-full px-3 py-1.5 text-sm text-nota-muted"
+                onClick={close}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                data-testid="echo-install-next"
+                className="rounded-full bg-nota-terracotta px-4 py-1.5 text-sm font-semibold text-white"
+                onClick={goNext}
+              >
+                {last ? 'Done' : 'Next'}
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <div className="h-8 w-8">
-              <EchoIdleFace />
-            </div>
-          </div>
-        )}
+        </div>
+      </div>
+      <div
+        ref={echo}
+        className="pointer-events-none fixed z-[81] will-change-transform"
+        style={{
+          width: ECHO_SIZE,
+          height: ECHO_SIZE,
+          left: origin.left,
+          top: origin.top,
+        }}
+      >
+        <EchoIdleFace />
+        <div ref={bubble} className="echo-bubble" data-side="left" role="status" style={{ opacity: 0 }}>
+          {step.story.slice(0, -1).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          <p className="font-semibold text-nota-ink">{step.story.at(-1)}</p>
+        </div>
       </div>
     </div>,
     document.body,

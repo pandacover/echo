@@ -141,6 +141,8 @@
   line-height: 1.35;
   color: var(--color-nota-ink);
   box-shadow: 0 10px 24px rgb(28 23 20 / 0.14);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .echo-bubble p + p {

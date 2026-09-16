@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  EDGE_INSET,
   INSTALL_STEPS,
-  bubbleSide,
+  boxCenter,
+  clamp,
   containedImageRect,
   demoFrameRect,
+  echoRestPosition,
   hotspotCornerRadius,
   hotspotRect,
   installStep,
   isLastInstallStep,
   isTap,
   nextInstallIndex,
-  orbitPoint,
-  orbitRadii,
   pleaseClick,
   pointerTravel,
 } from './echo-install.ts'
@@ -22,7 +23,10 @@ test('the walkthrough is four steps and each ends with Please click ‘action’
   for (const step of INSTALL_STEPS) {
     assert.equal(step.story.at(-1), pleaseClick(step.action))
     assert.ok(step.story.length >= 2)
-    assert.match(step.story[0] ?? '', /experiment/i)
+    const body = step.story.slice(0, -1).join(' ')
+    assert.equal(body.includes('—'), false)
+    assert.equal(body.includes(':'), false)
+    assert.ok(body.length > 20)
   }
   assert.deepEqual(
     INSTALL_STEPS.map((step) => step.action),
@@ -71,28 +75,34 @@ test('hotspotRect maps fractions onto the contained image', () => {
   assert.deepEqual(box, { x: 20, y: 60, w: 50, h: 50 })
 })
 
-test('orbitPoint traces an ellipse around the hotspot', () => {
-  const start = orbitPoint(10, 10, 8, 4, 0)
-  const down = orbitPoint(10, 10, 8, 4, Math.PI / 2)
-  assert.equal(start.x, 18)
-  assert.equal(start.y, 10)
-  assert.ok(Math.abs(down.x - 10) < 1e-9)
-  assert.equal(down.y, 14)
-  const radii = orbitRadii({ x: 0, y: 0, w: 20, h: 10 }, 8, 2)
-  assert.equal(radii.rx, 16)
-  assert.equal(radii.ry, 11)
-})
-
 test('wide hotspots get a rounded-rect highlight instead of a circle', () => {
   assert.equal(hotspotCornerRadius({ x: 0, y: 0, w: 80, h: 20 }), 10)
   assert.equal(hotspotCornerRadius({ x: 0, y: 0, w: 20, h: 20 }), 10)
 })
 
-test('the speech bubble prefers the roomiest side of the stage', () => {
-  assert.equal(bubbleSide(180, 80, 200, 200), 'left')
-  assert.equal(bubbleSide(20, 80, 200, 200), 'right')
-  assert.equal(bubbleSide(100, 20, 200, 200), 'bottom')
-  assert.equal(bubbleSide(100, 180, 200, 200), 'top')
+test('Echo sits near the action and stays off the frame edge', () => {
+  for (const step of INSTALL_STEPS) {
+    const frame = demoFrameRect(390, 844, step.imageWidth, step.imageHeight)
+    const stageW = frame.w
+    const stageH = frame.h - 56
+    const image = containedImageRect(stageW, stageH, step.imageWidth, step.imageHeight)
+    const hot = hotspotRect(image, step.hotspot)
+    const rest = echoRestPosition(hot, stageW, stageH, step.bias)
+    const half = 18
+    assert.ok(rest.x - half >= EDGE_INSET - 0.5, `${step.id} x ${rest.x}`)
+    assert.ok(rest.y - half >= EDGE_INSET - 0.5, `${step.id} y ${rest.y}`)
+    assert.ok(rest.x + half <= stageW - EDGE_INSET + 0.5, `${step.id} right ${rest.x}`)
+    assert.ok(rest.y + half <= stageH - EDGE_INSET + 0.5, `${step.id} bottom ${rest.y}`)
+    const center = boxCenter(hot)
+    const dist = Math.hypot(rest.x - center.x, rest.y - center.y)
+    assert.ok(dist < 140, `${step.id} too far from action (${dist})`)
+  }
+})
+
+test('clamp keeps values in range', () => {
+  assert.equal(clamp(5, 0, 10), 5)
+  assert.equal(clamp(-1, 0, 10), 0)
+  assert.equal(clamp(99, 0, 10), 10)
 })
 
 test('the demo frame stays inside the viewport', () => {
@@ -109,4 +119,11 @@ test('wide screenshots get a shorter frame instead of empty letterbox', () => {
   const wide = demoFrameRect(390, 844, 1206, 863)
   assert.ok(wide.h < tall.h)
   assert.ok(wide.h < 400)
+})
+
+test('a shorter frame keeps the same bottom as the tall one', () => {
+  const tall = demoFrameRect(390, 844, 1206, 2436)
+  const wide = demoFrameRect(390, 844, 1206, 863, tall.y + tall.h)
+  assert.ok(Math.abs(wide.y + wide.h - (tall.y + tall.h)) < 1)
+  assert.ok(wide.y > tall.y)
 })
