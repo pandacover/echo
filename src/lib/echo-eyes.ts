@@ -49,6 +49,18 @@ export function blinkStrokes(side: EyeSide) {
   }
 }
 
+export function swirlPath(turns = 2.4, rInner = 1.2, rOuter = 12, steps = 72) {
+  const points = Array.from({ length: steps + 1 }, (_, index) => {
+    const t = index / steps
+    const angle = t * turns * Math.PI * 2
+    const radius = rInner + (rOuter - rInner) * t
+    return [radius * Math.cos(angle), radius * Math.sin(angle)] as [number, number]
+  })
+  return points
+    .map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`)
+    .join(' ')
+}
+
 export function pathBounds(path: string) {
   const numbers = [...path.matchAll(/-?\d+\.\d+/g)].map((match) => Number(match[0]))
   const xs: number[] = []

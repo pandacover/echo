@@ -1,5 +1,3 @@
-import { ovalPath, pathBounds, type EyeSide } from './echo-eyes'
-
 export type GazeOffset = { x: number; y: number }
 
 export const GAZE_HOME: GazeOffset = { x: 0, y: 0 }
@@ -23,17 +21,19 @@ function pointInFace(x: number, y: number) {
   return (x - FACE_CX) ** 2 + (y - FACE_CY) ** 2 <= FACE_RADIUS ** 2
 }
 
-export function gazeKeepsEyesOnFace(offset: GazeOffset, sides: EyeSide[] = ['left', 'right']) {
-  return sides.every((side) => {
-    const bounds = pathBounds(ovalPath(side))
-    const corners: Array<[number, number]> = [
-      [bounds.minX + offset.x, bounds.minY + offset.y],
-      [bounds.maxX + offset.x, bounds.minY + offset.y],
-      [bounds.minX + offset.x, bounds.maxY + offset.y],
-      [bounds.maxX + offset.x, bounds.maxY + offset.y],
-    ]
-    return corners.every(([x, y]) => pointInFace(x, y))
-  })
+export function offsetKeepsBoundsOnFace(bounds: {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}, offset: GazeOffset) {
+  const corners: Array<[number, number]> = [
+    [bounds.minX + offset.x, bounds.minY + offset.y],
+    [bounds.maxX + offset.x, bounds.minY + offset.y],
+    [bounds.minX + offset.x, bounds.maxY + offset.y],
+    [bounds.maxX + offset.x, bounds.maxY + offset.y],
+  ]
+  return corners.every(([x, y]) => pointInFace(x, y))
 }
 
 export function pickGaze(current: GazeOffset): GazeOffset {
