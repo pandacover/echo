@@ -9,9 +9,18 @@ import { EchoMascot } from './EchoFace'
 import { PwaUpdateBanner } from './PwaUpdateBanner'
 import { useQuotaSession } from './QuotaSession'
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function QuotaAndEcho() {
   const { displayRemaining } = useQuotaSession()
 
+  return (
+    <div className="flex items-center gap-4">
+      {displayRemaining != null ? <QuotaPill remainingSeconds={displayRemaining} /> : null}
+      <EchoMascot />
+    </div>
+  )
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-dvh w-full flex-col bg-nota-bg">
       <header className="px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -51,12 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <FloatingNotices>
-        <div className="flex items-center gap-4">
-          {displayRemaining != null ? (
-            <QuotaPill remainingSeconds={displayRemaining} />
-          ) : null}
-          <EchoMascot />
-        </div>
+        <QuotaAndEcho />
         <InstallPrompt />
         <PwaUpdateBanner />
       </FloatingNotices>
