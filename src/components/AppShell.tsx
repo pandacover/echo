@@ -5,6 +5,7 @@ import { TabBar } from './TabBar'
 import { InstallPrompt } from './InstallPrompt'
 import { FloatingNotices } from './FloatingNotices'
 import { QuotaPill } from './QuotaPill'
+import { EchoMascot } from './EchoFace'
 import { PwaUpdateBanner } from './PwaUpdateBanner'
 import { useQuotaSession } from './QuotaSession'
 
@@ -46,13 +47,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(6.75rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
       <FloatingNotices>
-        {displayRemaining != null ? (
-          <QuotaPill remainingSeconds={displayRemaining} />
-        ) : null}
+        <div className="flex items-center gap-3">
+          {displayRemaining != null ? (
+            <QuotaPill remainingSeconds={displayRemaining} />
+          ) : null}
+          <EchoMascot />
+        </div>
         <InstallPrompt />
         <PwaUpdateBanner />
       </FloatingNotices>
