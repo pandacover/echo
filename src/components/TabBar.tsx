@@ -7,6 +7,16 @@ const tabs = [
   { to: '/dictionary', label: 'Dictionary', icon: BookOpen, exact: false },
 ] as const
 
+/** Outer inset — same on every side of the pill. */
+const NAV_PAD = 8
+/** 25% taller than the previous 44px highlight. */
+const ICON_H = 55
+/** Wider than tall so the active hit reads as a tab, not a circle. */
+const ICON_W = 70
+const ICON_GAP = 6
+const ICON_GLYPH = 30
+const SLOT = ICON_W + ICON_GAP
+
 function tabIndex(pathname: string) {
   if (pathname.startsWith('/notes')) return 1
   if (pathname.startsWith('/dictionary')) return 2
@@ -22,14 +32,24 @@ export function TabBar() {
       aria-label="Floating tab bar"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
-      <div className="pointer-events-auto relative grid w-full max-w-[22rem] grid-cols-3 rounded-full border border-nota-line/80 bg-white/80 px-1.5 py-1.5 shadow-[0_10px_32px_rgba(28,23,20,0.14)] backdrop-blur-xl">
+      <div
+        className="pointer-events-auto relative flex rounded-full border border-nota-line/80 bg-white/80 shadow-[0_10px_32px_rgba(28,23,20,0.14)] backdrop-blur-xl"
+        style={{
+          padding: NAV_PAD,
+          gap: ICON_GAP,
+        }}
+      >
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-y-1.5 left-1.5 flex w-[calc((100%-0.75rem)/3)] justify-center transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-          style={{ transform: `translate3d(${active * 100}%, 0, 0)` }}
-        >
-          <span className="aspect-square h-full rounded-full bg-nota-terracotta shadow-[0_8px_20px_rgba(196,92,62,0.28)]" />
-        </span>
+          className="pointer-events-none absolute rounded-full bg-nota-terracotta shadow-[0_8px_20px_rgba(196,92,62,0.28)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+          style={{
+            top: NAV_PAD,
+            left: NAV_PAD,
+            width: ICON_W,
+            height: ICON_H,
+            transform: `translate3d(${active * SLOT}px, 0, 0)`,
+          }}
+        />
         {tabs.map((tab) => (
           <Link
             key={tab.to}
@@ -37,14 +57,14 @@ export function TabBar() {
             preload="render"
             aria-label={tab.label}
             activeOptions={{ exact: tab.exact }}
-            className="relative z-10 flex items-center justify-center py-2.5 text-nota-ink"
+            className="relative z-10 flex items-center justify-center text-nota-ink"
             activeProps={{
-              className:
-                'relative z-10 flex items-center justify-center py-2.5 text-white',
+              className: 'relative z-10 flex items-center justify-center text-white',
             }}
+            style={{ width: ICON_W, height: ICON_H }}
           >
             {({ isActive }: { isActive: boolean }) => (
-              <tab.icon size={24} strokeWidth={isActive ? 2.2 : 1.7} />
+              <tab.icon size={ICON_GLYPH} strokeWidth={isActive ? 2.2 : 1.7} />
             )}
           </Link>
         ))}
