@@ -108,3 +108,111 @@
     opacity: 1;
   }
 }
+
+@keyframes echo-hotspot-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 0 rgb(196 92 62 / 0.35);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 8px rgb(196 92 62 / 0);
+  }
+}
+
+.echo-hotspot {
+  border: 1.5px solid var(--color-nota-terracotta);
+  box-shadow: 0 0 0 0 rgb(196 92 62 / 0.35);
+  animation: echo-hotspot-pulse 1.8s ease-out infinite;
+}
+
+.echo-bubble {
+  position: absolute;
+  z-index: 2;
+  width: max-content;
+  max-width: min(13.75rem, 58vw);
+  border-radius: 1.05rem;
+  border: 1px solid rgb(196 92 62 / 0.28);
+  background: #fff;
+  padding: 0.7rem 0.85rem;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-nota-ink);
+  box-shadow: 0 10px 24px rgb(28 23 20 / 0.14);
+}
+
+.echo-bubble p + p {
+  margin-top: 0.4rem;
+}
+
+.echo-bubble::after,
+.echo-bubble::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+}
+
+.echo-bubble[data-side='left']::before {
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: rgb(196 92 62 / 0.28);
+}
+
+.echo-bubble[data-side='left']::after {
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: #fff;
+}
+
+.echo-bubble[data-side='right']::before {
+  left: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: rgb(196 92 62 / 0.28);
+}
+
+.echo-bubble[data-side='right']::after {
+  left: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: #fff;
+}
+
+.echo-bubble[data-side='top']::before {
+  left: 50%;
+  bottom: -15px;
+  transform: translateX(-50%);
+  border-top-color: rgb(196 92 62 / 0.28);
+}
+
+.echo-bubble[data-side='top']::after {
+  left: 50%;
+  bottom: -13px;
+  transform: translateX(-50%);
+  border-top-color: #fff;
+}
+
+.echo-bubble[data-side='bottom']::before {
+  left: 50%;
+  top: -15px;
+  transform: translateX(-50%);
+  border-bottom-color: rgb(196 92 62 / 0.28);
+}
+
+.echo-bubble[data-side='bottom']::after {
+  left: 50%;
+  top: -13px;
+  transform: translateX(-50%);
+  border-bottom-color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .echo-hotspot {
+    animation: none;
+  }
+}

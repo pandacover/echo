@@ -1,7 +1,9 @@
-import { memo, useLayoutEffect, useRef } from 'react'
+import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { animate, type JSAnimation } from 'animejs'
+import { EchoInstallDemo } from './EchoInstallDemo'
 import { blinkStrokes, ovalPath, swirlPath, type EyeSide } from '~/lib/echo-eyes'
 import { GAZE_HOME, pickGaze, type GazeOffset } from '~/lib/echo-gaze'
+import { isTap, pointerTravel } from '~/lib/echo-install'
 import {
   angularDelta,
   clampSpin,
@@ -28,6 +30,13 @@ export const EchoMascot = memo(function EchoMascot() {
   const gaze = useRef<SVGGElement>(null)
   const swirls = useRef<SVGGElement>(null)
   const swirlSpin = useRef<Record<EyeSide, SVGGElement | null>>({ left: null, right: null })
+  const [demoOrigin, setDemoOrigin] = useState<DOMRect | null>(null)
+  const tapRef = useRef<() => void>(() => {})
+  tapRef.current = () => {
+    const rect = root.current?.getBoundingClientRect()
+    if (!rect) return
+    setDemoOrigin(rect)
+  }
 
   useLayoutEffect(() => {
     const timers: number[] = []
@@ -41,6 +50,10 @@ export const EchoMascot = memo(function EchoMascot() {
     let lastX = 0
     let lastY = 0
     let lastT = 0
+    let startX = 0
+    let startY = 0
+    let travel = 0
+    let spinning = false
     let rotation = 0
     let velocity = 0
     let swirlAngle = 0
@@ -205,24 +218,37 @@ export const EchoMascot = memo(function EchoMascot() {
       return { cx: box.left + box.width / 2, cy: box.top + box.height / 2 }
     }
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return
-      if (recovering) return
-      event.preventDefault()
+    const beginSpin = () => {
+      spinning = true
       dragging = true
       dizzy = false
       setDizzyEyes(false)
       lookTo(GAZE_HOME, 0)
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return
+      if (recovering) return
+      event.preventDefault()
       pointerId = event.pointerId
       root.current?.setPointerCapture(event.pointerId)
+      startX = event.clientX
+      startY = event.clientY
       lastX = event.clientX
       lastY = event.clientY
       lastT = event.timeStamp
+      travel = 0
+      spinning = false
       velocity = 0
     }
 
     const onPointerMove = (event: PointerEvent) => {
-      if (!dragging || event.pointerId !== pointerId) return
+      if (event.pointerId !== pointerId) return
+      travel = Math.max(travel, pointerTravel(startX, startY, event.clientX, event.clientY))
+      if (!spinning) {
+        if (isTap(travel)) return
+        beginSpin()
+      }
       const { cx, cy } = centerOf()
       const dt = Math.max((event.timeStamp - lastT) / 1000, 1 / 240)
       const delta = angularDelta(cx, cy, lastX, lastY, event.clientX, event.clientY)
@@ -237,14 +263,27 @@ export const EchoMascot = memo(function EchoMascot() {
 
     const onPointerUp = (event: PointerEvent) => {
       if (event.pointerId !== pointerId) return
+      const wasSpinning = spinning
       dragging = false
+      spinning = false
       pointerId = null
-      if (isFlick(velocity)) {
+      if (!wasSpinning && isTap(travel)) {
+        tapRef.current()
+        return
+      }
+      if (wasSpinning && isFlick(velocity)) {
         dizzy = true
         velocity = flickBoost(velocity)
         lookTo(GAZE_HOME, 0)
         setDizzyEyes(true)
       }
+    }
+
+    const onPointerCancel = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return
+      dragging = false
+      spinning = false
+      pointerId = null
     }
 
     const tick = (now: number) => {
@@ -269,7 +308,7 @@ export const EchoMascot = memo(function EchoMascot() {
     node?.addEventListener('pointerdown', onPointerDown)
     node?.addEventListener('pointermove', onPointerMove)
     node?.addEventListener('pointerup', onPointerUp)
-    node?.addEventListener('pointercancel', onPointerUp)
+    node?.addEventListener('pointercancel', onPointerCancel)
 
     return () => {
       alive = false
@@ -277,17 +316,32 @@ export const EchoMascot = memo(function EchoMascot() {
       node?.removeEventListener('pointerdown', onPointerDown)
       node?.removeEventListener('pointermove', onPointerMove)
       node?.removeEventListener('pointerup', onPointerUp)
-      node?.removeEventListener('pointercancel', onPointerUp)
+      node?.removeEventListener('pointercancel', onPointerCancel)
       for (const id of timers) window.clearTimeout(id)
       for (const animation of animations) animation.revert()
     }
   }, [])
 
   return (
+    <>
     <div
       ref={root}
-      aria-label="Echo"
-      className={`pointer-events-auto box-border flex ${ECHO_ORBIT_CLASS} shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full border border-nota-terracotta p-1 active:cursor-grabbing`}
+      role="button"
+      tabIndex={demoOrigin ? -1 : 0}
+      aria-haspopup="dialog"
+      aria-expanded={demoOrigin != null}
+      aria-label="Echo. Open home screen install demo"
+      data-testid="echo-mascot"
+      onKeyDown={(event) => {
+        if (demoOrigin) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          tapRef.current()
+        }
+      }}
+      className={`pointer-events-auto box-border flex ${ECHO_ORBIT_CLASS} shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full border border-nota-terracotta p-1 active:cursor-grabbing ${
+        demoOrigin ? 'invisible pointer-events-none' : ''
+      }`}
     >
       <div ref={rotator} className="h-full w-full will-change-transform">
         <svg className="h-full w-full" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
@@ -353,5 +407,7 @@ export const EchoMascot = memo(function EchoMascot() {
         </svg>
       </div>
     </div>
+    {demoOrigin ? <EchoInstallDemo origin={demoOrigin} onClose={() => setDemoOrigin(null)} /> : null}
+    </>
   )
 })
