@@ -31,13 +31,15 @@ function DictionaryPage() {
         placeholder="Search words"
         className="mt-5 w-full rounded-2xl border border-nota-line bg-white/70 px-4 py-3 outline-none placeholder:text-nota-soft"
       />
-      {filtered.length === 0 ? (
+      {dictionary.length === 0 ? (
         <>
           <p className="mt-10 text-nota-muted">
             Terms extracted from your polished notes will land here.
           </p>
           <SignInHint message="Sign in so dictionary words stay attached to your notes." />
         </>
+      ) : filtered.length === 0 ? (
+        <p className="mt-10 text-nota-muted">No words match that search.</p>
       ) : (
         <ul className="mt-6 divide-y divide-nota-line overflow-hidden rounded-3xl border border-nota-line bg-white/70">
           {filtered.map((entry) => (

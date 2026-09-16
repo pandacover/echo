@@ -8,7 +8,7 @@ export function getRouter() {
     routeTree,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 30_000,
-    defaultStaleTime: Infinity,
+    defaultStaleTime: 5_000,
     defaultPendingMs: 0,
     defaultPendingMinMs: 0,
     defaultStaleReloadMode: 'background',

@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-r
 import { useState } from 'react'
 import { useServerFn } from '@tanstack/react-start'
 import { deleteNote, fetchNote } from '~/lib/notes.functions'
+import { getSessionUserId } from '~/lib/session'
 
 export const Route = createFileRoute('/_app/notes/$noteId')({
-  staleTime: 30_000,
+  staleTime: 0,
   loader: async ({ params, context }) => {
-    if (!context.userId) return { note: null }
+    if (!context.userId && !getSessionUserId()) return { note: null }
     return { note: await fetchNote({ data: { id: params.noteId } }) }
   },
   component: NoteDetailPage,
@@ -15,12 +16,22 @@ export const Route = createFileRoute('/_app/notes/$noteId')({
 function NoteDetailPage() {
   const { note } = Route.useLoaderData()
   const [showRaw, setShowRaw] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const remove = useServerFn(deleteNote)
   const navigate = useNavigate()
   const router = useRouter()
 
   if (!note) {
-    return <div className="px-6 pt-10 text-nota-muted">Sign in to read this note.</div>
+    return (
+      <div className="px-6 pt-10 text-nota-muted">
+        This note is not available.
+        <div className="mt-4">
+          <Link to="/notes" className="text-sm text-nota-terracotta">
+            ← Notes
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -50,14 +61,21 @@ function NoteDetailPage() {
         {showRaw ? note.raw_transcript : note.polished_transcript}
       </p>
       <button
-        className="mt-10 text-sm text-nota-terracotta"
+        className="mt-10 text-sm text-nota-terracotta disabled:opacity-50"
+        disabled={deleting}
         onClick={async () => {
-          await remove({ data: { id: note.id } })
-          await router.invalidate()
-          await navigate({ to: '/notes' })
+          setDeleting(true)
+          try {
+            await remove({ data: { id: note.id } })
+            await router.invalidate({ sync: true })
+            await navigate({ to: '/notes' })
+          } catch (error) {
+            setDeleting(false)
+            console.error(error)
+          }
         }}
       >
-        Delete note
+        {deleting ? 'Deleting…' : 'Delete note'}
       </button>
     </article>
   )
