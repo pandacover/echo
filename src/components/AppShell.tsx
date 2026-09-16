@@ -5,12 +5,22 @@ import { TabBar } from './TabBar'
 import { InstallPrompt } from './InstallPrompt'
 import { FloatingNotices } from './FloatingNotices'
 import { QuotaPill } from './QuotaPill'
+import { EchoMascot } from './EchoFace'
 import { PwaUpdateBanner } from './PwaUpdateBanner'
 import { useQuotaSession } from './QuotaSession'
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function QuotaAndEcho() {
   const { displayRemaining } = useQuotaSession()
 
+  return (
+    <div className="flex items-center gap-4">
+      {displayRemaining != null ? <QuotaPill remainingSeconds={displayRemaining} /> : null}
+      <EchoMascot />
+    </div>
+  )
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-dvh w-full flex-col bg-nota-bg">
       <header className="px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -46,13 +56,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(6.75rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
       <FloatingNotices>
-        {displayRemaining != null ? (
-          <QuotaPill remainingSeconds={displayRemaining} />
-        ) : null}
+        <QuotaAndEcho />
         <InstallPrompt />
         <PwaUpdateBanner />
       </FloatingNotices>
