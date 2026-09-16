@@ -27,7 +27,7 @@ export function RecordButton({
         size={46}
         strokeWidth={1.75}
         color="currentColor"
-        spring="snappy"
+        spring="smooth"
       />
     </button>
   )
