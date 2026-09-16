@@ -91,7 +91,9 @@ Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Thos
 
 Every account is treated as a free user and starts with **10 minutes** of recording time (`profiles.quota_seconds = 600`). Time is consumed when a recording is saved and is **not** restored if the note is deleted.
 
-The remaining time is shown in a small pill just above the tab bar. If a PWA update banner is also visible, the two stack so they do not overlap.
+The remaining time is shown in a small pill just above the tab bar and counts down while you record. Recording **stops automatically** when that time runs out (including if the tab is backgrounded or you leave Record); the take is saved and billed up to the remaining seconds. The mic is disabled at 0. The server measures duration from the audio size as well as the client clock, and saving the note consumes quota in the same database transaction.
+
+If a PWA update banner is also visible, the two stack so they do not overlap.
 
 To raise a user's limit:
 
@@ -120,3 +122,4 @@ If they have no row yet, `set_recording_quota` creates one.
 | `npm run build` | Production build |
 | `npm run preview` | Preview the production build |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Quota helper tests |

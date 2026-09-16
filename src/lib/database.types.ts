@@ -134,6 +134,47 @@ export type Database = {
           user_id: string
         }
       }
+      finalize_my_recording: {
+        Args: {
+          p_duration_seconds: number
+          p_polished_transcript: string
+          p_raw_transcript: string
+          p_title: string
+          p_word_count: number
+        }
+        Returns: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          polished_transcript: string
+          raw_transcript: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+      }
+      finalize_recording_for: {
+        Args: {
+          p_duration_seconds: number
+          p_polished_transcript: string
+          p_raw_transcript: string
+          p_title: string
+          p_user_id: string
+          p_word_count: number
+        }
+        Returns: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          polished_transcript: string
+          raw_transcript: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+      }
       set_recording_quota: {
         Args: { p_quota_seconds: number; p_user_id: string }
         Returns: {

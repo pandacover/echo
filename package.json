@@ -7,7 +7,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "start": "node .output/server/index.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/lib/quota.test.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.17.2",

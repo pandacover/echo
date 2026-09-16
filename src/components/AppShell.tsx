@@ -6,16 +6,17 @@ import { InstallPrompt } from './InstallPrompt'
 import { FloatingNotices } from './FloatingNotices'
 import { QuotaPill } from './QuotaPill'
 import { PwaUpdateBanner } from './PwaUpdateBanner'
+import { useQuotaSession } from './QuotaSession'
 
 export function AppShell({
   children,
   wordCount = 0,
-  remainingSeconds = null,
 }: {
   children: React.ReactNode
   wordCount?: number
-  remainingSeconds?: number | null
 }) {
+  const { displayRemaining } = useQuotaSession()
+
   return (
     <div className="relative flex min-h-dvh w-full flex-col bg-nota-bg">
       <header className="grid grid-cols-[1fr_auto_1fr] items-center px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -50,8 +51,8 @@ export function AppShell({
         {children}
       </main>
       <FloatingNotices>
-        {remainingSeconds != null ? (
-          <QuotaPill remainingSeconds={remainingSeconds} />
+        {displayRemaining != null ? (
+          <QuotaPill remainingSeconds={displayRemaining} />
         ) : null}
         <InstallPrompt />
         <PwaUpdateBanner />

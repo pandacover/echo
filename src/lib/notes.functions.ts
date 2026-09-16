@@ -3,7 +3,17 @@ import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, DictionaryEntry, Note } from './database.types'
-import { toRecordingQuota, type RecordingQuota } from './quota'
+import {
+  billedDurationSeconds,
+  estimateAudioSeconds,
+  measuredDurationSeconds,
+  parseClaimedDuration,
+  QUOTA_EXCEEDED,
+  QUOTA_REACHED,
+  shouldRejectBeforeTranscribe,
+  toRecordingQuota,
+  type RecordingQuota,
+} from './quota'
 import {
   getServerClerkSecretKey,
   isClerkSecretKey,
@@ -23,9 +33,6 @@ import {
 
 const SERVER_SESSION_MISSING =
   'Not signed in on the server. Sign in again, then retry the recording.'
-
-const QUOTA_REACHED = "You've used all of your recording time."
-const QUOTA_EXCEEDED = 'This recording is longer than your remaining time.'
 
 const CLERK_SUPABASE_SETUP =
   'Supabase did not accept the Clerk session as this user. The Clerk Frontend API URL in Supabase is expected and is not editable. Set SUPABASE_SECRET_KEY (sb_secret_…) or SUPABASE_SERVICE_ROLE_KEY on Vercel as a server-only env var, then redeploy.'
@@ -134,32 +141,41 @@ async function loadQuota(
   return toRecordingQuota(data)
 }
 
-async function consumeQuota(
+function quotaErrorMessage(error: { message?: string } | null | undefined, fallback: string) {
+  const message = error?.message ?? ''
+  if (message.includes('Recording time limit reached')) return QUOTA_REACHED
+  return message || fallback
+}
+
+async function finalizeNote(
   supabase: SupabaseClient<Database>,
   userId: string,
   persistUserId: boolean,
-  seconds: number,
-) {
-  if (persistUserId) {
-    const { data: current, error: readError } = await supabase
-      .from('profiles')
-      .select('used_seconds')
-      .eq('user_id', userId)
-      .single()
-    if (readError) throw new Error(readError.message)
-    if (!current) throw new Error('Could not update recording quota.')
-    const { error } = await supabase
-      .from('profiles')
-      .update({ used_seconds: current.used_seconds + seconds })
-      .eq('user_id', userId)
-    if (error) throw new Error(error.message)
-    return
+  input: {
+    title: string
+    rawTranscript: string
+    polishedTranscript: string
+    durationSeconds: number
+    wordCount: number
+  },
+): Promise<Note> {
+  const args = {
+    p_title: input.title,
+    p_raw_transcript: input.rawTranscript,
+    p_polished_transcript: input.polishedTranscript,
+    p_duration_seconds: input.durationSeconds,
+    p_word_count: input.wordCount,
   }
-
-  const { error } = await supabase.rpc('consume_my_recording_quota', {
-    p_seconds: seconds,
-  })
-  if (error) throw new Error(error.message)
+  const result = persistUserId
+    ? await supabase.rpc('finalize_recording_for', { p_user_id: userId, ...args })
+    : await supabase.rpc('finalize_my_recording', args)
+  if (result.error) {
+    throw new Error(quotaErrorMessage(result.error, result.error.message))
+  }
+  if (!result.data) {
+    throw new Error('Could not save to Supabase.')
+  }
+  return result.data as Note
 }
 
 export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () => {
@@ -193,6 +209,13 @@ export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () 
     quota,
   }
 })
+
+export const fetchRecordingQuota = createServerFn({ method: 'POST' })
+  .validator((data: { clerkToken?: string } | undefined) => data ?? {})
+  .handler(async ({ data }) => {
+    const { supabase, userId, persistUserId } = await requireUser(data.clerkToken)
+    return loadQuota(supabase, userId, persistUserId)
+  })
 
 export const fetchNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
@@ -246,7 +269,6 @@ export const processRecording = createServerFn({ method: 'POST' })
     const sessionToken = String(data.get('clerkToken') || '')
     const { supabase, userId, persistUserId } = await requireUser(sessionToken)
     const audio = data.get('audio')
-    const duration = Number(data.get('duration') || 0)
     if (!(audio instanceof File)) {
       throw new Error('Missing audio upload')
     }
@@ -255,8 +277,16 @@ export const processRecording = createServerFn({ method: 'POST' })
     if (quota.remainingSeconds <= 0) {
       throw new Error(QUOTA_REACHED)
     }
-    if (duration > quota.remainingSeconds + 5) {
+
+    const claimed = parseClaimedDuration(data.get('duration'))
+    const estimated = estimateAudioSeconds(audio.size)
+    const measured = measuredDurationSeconds(claimed, estimated)
+    if (shouldRejectBeforeTranscribe(measured, quota.remainingSeconds)) {
       throw new Error(QUOTA_EXCEEDED)
+    }
+    const billed = billedDurationSeconds(measured, quota.remainingSeconds)
+    if (billed <= 0) {
+      throw new Error(QUOTA_REACHED)
     }
 
     const format = formatFromMime(audio.type || 'audio/webm')
@@ -273,32 +303,19 @@ export const processRecording = createServerFn({ method: 'POST' })
     const cleaned = await polishTranscript({ apiKey, raw })
     const wordCount = countWords(cleaned.polished)
 
-    const { data: note, error } = await supabase
-      .from('notes')
-      .insert({
-        ...(persistUserId ? { user_id: userId } : {}),
-        title: cleaned.title,
-        raw_transcript: raw,
-        polished_transcript: cleaned.polished,
-        duration_seconds: Math.round(duration),
-        word_count: wordCount,
-      })
-      .select('*')
-      .single()
-
-    if (error) {
-      throw new Error(`Could not save to Supabase (${error.message}). ${CLERK_SUPABASE_SETUP}`)
-    }
-
+    let note: Note
     try {
-      await consumeQuota(
-        supabase,
-        userId,
-        persistUserId,
-        Math.max(1, Math.round(duration)),
-      )
-    } catch (quotaError) {
-      console.error('Recording quota consume failed', quotaError)
+      note = await finalizeNote(supabase, userId, persistUserId, {
+        title: cleaned.title,
+        rawTranscript: raw,
+        polishedTranscript: cleaned.polished,
+        durationSeconds: billed,
+        wordCount,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save to Supabase.'
+      if (message === QUOTA_REACHED) throw error
+      throw new Error(`Could not save to Supabase (${message}). ${CLERK_SUPABASE_SETUP}`)
     }
 
     if (cleaned.dictionary.length > 0) {
