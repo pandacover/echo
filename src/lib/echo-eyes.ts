@@ -51,15 +51,15 @@ function sampleLoop(vertices: Array<[number, number]>, count = POINT_COUNT): Arr
 }
 
 export function eyeCenter(side: EyeSide) {
-  return { cx: side === 'left' ? 36 : 64, cy: 44 }
+  return { cx: side === 'left' ? 34 : 66, cy: 45 }
 }
 
 export function eyePath(shape: EyeShape, side: EyeSide) {
   const { cx, cy } = eyeCenter(side)
-  if (shape === 'oval') return toPath(ellipsePoints(cx, cy, 7.4, 10.2))
-  if (shape === 'dash') return toPath(ellipsePoints(cx, cy, 8.6, 1.7))
-  const rx = 8.4
-  const ry = 9.6
+  if (shape === 'oval') return toPath(ellipsePoints(cx, cy, 11.2, 16.4))
+  if (shape === 'dash') return toPath(ellipsePoints(cx, cy, 13.4, 2.1))
+  const rx = 12.2
+  const ry = 15.2
   if (shape === 'gt') {
     return toPath(
       sampleLoop([
@@ -76,4 +76,20 @@ export function eyePath(shape: EyeShape, side: EyeSide) {
       [cx + rx, cy + ry],
     ]),
   )
+}
+
+export function pathBounds(path: string) {
+  const numbers = [...path.matchAll(/-?\d+\.\d+/g)].map((match) => Number(match[0]))
+  const xs: number[] = []
+  const ys: number[] = []
+  for (let index = 0; index < numbers.length; index += 1) {
+    if (index % 2 === 0) xs.push(numbers[index] ?? 0)
+    else ys.push(numbers[index] ?? 0)
+  }
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+  }
 }

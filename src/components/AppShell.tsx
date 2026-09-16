@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <FloatingNotices>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {displayRemaining != null ? (
             <QuotaPill remainingSeconds={displayRemaining} />
           ) : null}
