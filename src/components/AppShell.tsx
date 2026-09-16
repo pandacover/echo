@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
       <FloatingNotices>
