@@ -1,25 +1,50 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { SignInHint } from '~/components/SignInHint'
+import { NoteMentionLinks } from '~/components/NoteMentionLinks'
+import { normalizeWordKey, notesMentioningWord } from '~/lib/dictionary-text'
 
 const appRoute = getRouteApi('/_app')
 
 export const Route = createFileRoute('/_app/dictionary')({
+  validateSearch: (search: Record<string, unknown>): { q?: string } => {
+    const q = typeof search.q === 'string' ? search.q.trim() : ''
+    return q ? { q } : {}
+  },
   component: DictionaryPage,
 })
 
 function DictionaryPage() {
-  const { dictionary } = appRoute.useLoaderData()
-  const [query, setQuery] = useState('')
+  const { dictionary, notes } = appRoute.useLoaderData()
+  const { q } = Route.useSearch()
+  const [query, setQuery] = useState(q ?? '')
+  const highlightKey = q ? normalizeWordKey(q) : ''
+  const highlightRef = useRef<HTMLLIElement>(null)
+
+  useEffect(() => {
+    if (q != null) setQuery(q)
+  }, [q])
+
+  useEffect(() => {
+    highlightRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [highlightKey, dictionary])
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return dictionary
-    return dictionary.filter(
-      (entry) =>
-        entry.word.toLowerCase().includes(needle) ||
-        entry.definition.toLowerCase().includes(needle),
-    )
-  }, [dictionary, query])
+    const matches = !needle
+      ? dictionary
+      : dictionary.filter(
+          (entry) =>
+            entry.word.toLowerCase().includes(needle) ||
+            entry.definition.toLowerCase().includes(needle),
+        )
+    if (!highlightKey) return matches
+    return [...matches].sort((a, b) => {
+      const aExact = normalizeWordKey(a.word) === highlightKey ? 0 : 1
+      const bExact = normalizeWordKey(b.word) === highlightKey ? 0 : 1
+      return aExact - bExact
+    })
+  }, [dictionary, highlightKey, query])
 
   return (
     <div className="px-6 pb-8 pt-4">
@@ -42,14 +67,27 @@ function DictionaryPage() {
         <p className="mt-10 text-nota-muted">No words match that search.</p>
       ) : (
         <ul className="mt-6 divide-y divide-nota-line overflow-hidden rounded-3xl border border-nota-line bg-white/70">
-          {filtered.map((entry) => (
-            <li key={entry.id} className="px-5 py-4">
-              <p className="font-serif text-2xl">{entry.word}</p>
-              <p className="mt-1 text-sm leading-relaxed text-nota-muted">
-                {entry.definition || 'No definition yet'}
-              </p>
-            </li>
-          ))}
+          {filtered.map((entry) => {
+            const active = highlightKey === normalizeWordKey(entry.word)
+            return (
+              <li
+                key={entry.id}
+                ref={active ? highlightRef : undefined}
+                className={`px-5 py-4 ${active ? 'bg-nota-blush/70' : ''}`}
+              >
+                <p className="font-serif text-2xl">{entry.word}</p>
+                <p className="mt-1 text-sm leading-relaxed text-nota-muted">
+                  {entry.definition || 'No definition yet'}
+                </p>
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-nota-soft">
+                    IN NOTES
+                  </p>
+                  <NoteMentionLinks mentions={notesMentioningWord(notes, entry.word)} />
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

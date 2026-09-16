@@ -235,13 +235,6 @@ export const deleteNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
     const { supabase, userId } = await requireUser()
-    const { error: dictionaryError } = await supabase
-      .from('dictionary_entries')
-      .delete()
-      .eq('note_id', data.id)
-      .eq('user_id', userId)
-    if (dictionaryError) throw new Error(dictionaryError.message)
-
     const { error } = await supabase
       .from('notes')
       .delete()
