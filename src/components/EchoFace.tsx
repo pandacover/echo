@@ -24,6 +24,7 @@ export const EchoMascot = memo(function EchoMascot() {
   const rotator = useRef<HTMLDivElement>(null)
   const ovals = useRef<Record<EyeSide, SVGPathElement | null>>({ left: null, right: null })
   const blink = useRef<SVGGElement>(null)
+  const restEyes = useRef<SVGGElement>(null)
   const gaze = useRef<SVGGElement>(null)
   const swirls = useRef<SVGGElement>(null)
   const swirlSpin = useRef<Record<EyeSide, SVGGElement | null>>({ left: null, right: null })
@@ -86,14 +87,19 @@ export const EchoMascot = memo(function EchoMascot() {
 
     const setOpen = (next: boolean, duration: number | { oval: number; blink: number }) => {
       if (!alive || open === next) return
-      open = next
+      if (dizzy && !recovering) return
       const ovalMs = typeof duration === 'number' ? duration : duration.oval
       const blinkMs = typeof duration === 'number' ? duration : duration.blink
       const ovalEls = [ovals.current.left, ovals.current.right].filter(Boolean)
       const blinkEl = blink.current
       if (!ovalEls.length || !blinkEl) return
+      open = next
       if (reduced || ovalMs === 0) {
-        for (const el of ovalEls) el?.setAttribute('fill-opacity', next ? '1' : '0')
+        for (const el of ovalEls) {
+          el?.style.setProperty('fill-opacity', next ? '1' : '0')
+          el?.setAttribute('fill-opacity', next ? '1' : '0')
+        }
+        blinkEl.style.setProperty('opacity', next ? '0' : '1')
         blinkEl.setAttribute('opacity', next ? '0' : '1')
         return
       }
@@ -114,11 +120,19 @@ export const EchoMascot = memo(function EchoMascot() {
     }
 
     const setDizzyEyes = (on: boolean) => {
+      for (const animation of animations) animation.pause()
       const ovalEls = [ovals.current.left, ovals.current.right]
-      for (const el of ovalEls) el?.setAttribute('fill-opacity', on ? '0' : '1')
+      for (const el of ovalEls) {
+        el?.style.setProperty('fill-opacity', on ? '0' : '1')
+        el?.setAttribute('fill-opacity', on ? '0' : '1')
+      }
+      blink.current?.style.setProperty('opacity', '0')
       blink.current?.setAttribute('opacity', '0')
+      restEyes.current?.style.setProperty('visibility', on ? 'hidden' : 'visible')
+      restEyes.current?.setAttribute('visibility', on ? 'hidden' : 'visible')
+      swirls.current?.style.setProperty('opacity', on ? '1' : '0')
       swirls.current?.setAttribute('opacity', on ? '1' : '0')
-      open = !on
+      open = true
     }
 
     const schedule = (delay: number, work: () => void) => {
@@ -279,38 +293,40 @@ export const EchoMascot = memo(function EchoMascot() {
         <svg className="h-full w-full" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
           <circle cx="50" cy="50" r="50" fill="#111" />
           <g ref={gaze}>
-            <path
-              ref={(node) => {
-                ovals.current.left = node
-              }}
-              d={ovalPath('left')}
-              fill="#fff"
-            />
-            <path
-              ref={(node) => {
-                ovals.current.right = node
-              }}
-              d={ovalPath('right')}
-              fill="#fff"
-            />
-            <g
-              ref={blink}
-              fill="none"
-              stroke="#fff"
-              strokeWidth="3.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0"
-            >
-              {(['left', 'right'] as const).map((side) => {
-                const strokes = blinkStrokes(side)
-                return (
-                  <g key={side}>
-                    <path d={strokes.chevron} />
-                    <path d={strokes.midline} />
-                  </g>
-                )
-              })}
+            <g ref={restEyes}>
+              <path
+                ref={(node) => {
+                  ovals.current.left = node
+                }}
+                d={ovalPath('left')}
+                fill="#fff"
+              />
+              <path
+                ref={(node) => {
+                  ovals.current.right = node
+                }}
+                d={ovalPath('right')}
+                fill="#fff"
+              />
+              <g
+                ref={blink}
+                fill="none"
+                stroke="#fff"
+                strokeWidth="3.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0"
+              >
+                {(['left', 'right'] as const).map((side) => {
+                  const strokes = blinkStrokes(side)
+                  return (
+                    <g key={side}>
+                      <path d={strokes.chevron} />
+                      <path d={strokes.midline} />
+                    </g>
+                  )
+                })}
+              </g>
             </g>
             <g
               ref={swirls}
