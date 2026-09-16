@@ -3,7 +3,7 @@ export const EYE_SHAPES = ['oval', 'dash', 'gt', 'lt'] as const
 export type EyeShape = (typeof EYE_SHAPES)[number]
 export type EyeSide = 'left' | 'right'
 
-const POINT_COUNT = 8
+const POINT_COUNT = 24
 
 function toPath(points: Array<[number, number]>) {
   return `${points

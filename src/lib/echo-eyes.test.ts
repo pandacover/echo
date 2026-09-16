@@ -4,13 +4,13 @@ import { EYE_SHAPES, eyePath, pathBounds, type EyeSide } from './echo-eyes.ts'
 
 const sides: EyeSide[] = ['left', 'right']
 
-test('every eye shape is a closed 8-point path', () => {
+test('every eye shape is a closed 24-point path', () => {
   for (const shape of EYE_SHAPES) {
     for (const side of sides) {
       const path = eyePath(shape, side)
       const commands = path.match(/[ML]/g) ?? []
       assert.equal(commands[0], 'M')
-      assert.equal(commands.length, 8)
+      assert.equal(commands.length, 24)
       assert.match(path, /Z$/)
     }
   }
