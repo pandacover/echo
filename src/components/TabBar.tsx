@@ -44,7 +44,7 @@ export function TabBar() {
             }}
           >
             {({ isActive }: { isActive: boolean }) => (
-              <tab.icon size={22} strokeWidth={isActive ? 2.2 : 1.7} />
+              <tab.icon size={24} strokeWidth={isActive ? 2.2 : 1.7} />
             )}
           </Link>
         ))}
