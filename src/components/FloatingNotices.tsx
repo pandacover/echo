@@ -6,7 +6,7 @@ export function FloatingNotices({ children }: { children: ReactNode }) {
   return (
     <div
       id={FLOATING_NOTICES_ID}
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-50 flex flex-col-reverse items-center gap-2 px-5"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(5.35rem+env(safe-area-inset-bottom))] z-50 flex flex-col-reverse items-center gap-2 px-5"
     >
       {children}
     </div>

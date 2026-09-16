@@ -1,5 +1,5 @@
 import { BookOpen, Mic, NotebookPen } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 
 const tabs = [
   { to: '/', label: 'Record', icon: Mic, exact: true },
@@ -7,38 +7,67 @@ const tabs = [
   { to: '/dictionary', label: 'Dictionary', icon: BookOpen, exact: false },
 ] as const
 
+/** Same inset on every side, measured to the icon chip. */
+const NAV_PAD = 6
+/** Previous highlight was ~44px; +25% → 55, then a little extra to fill the taller pill. */
+const ICON_H = 58
+/** Wider than tall so the active chip is a stadium, not a circle. */
+const ICON_W = 88
+const ICON_GAP = 4
+/** Glyph fills most of the chip; slightly wider than tall. */
+const GLYPH_H = 36
+const GLYPH_W = 44
+const SLOT = ICON_W + ICON_GAP
+
+function tabIndex(pathname: string) {
+  if (pathname.startsWith('/notes')) return 1
+  if (pathname.startsWith('/dictionary')) return 2
+  return 0
+}
+
 export function TabBar() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const active = tabIndex(pathname)
+
   return (
     <nav
       aria-label="Floating tab bar"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
-      <div className="pointer-events-auto grid w-full max-w-[22rem] grid-cols-3 rounded-full border border-nota-line/80 bg-white/80 px-1.5 py-1.5 shadow-[0_10px_32px_rgba(28,23,20,0.14)] backdrop-blur-xl">
+      <div
+        className="pointer-events-auto relative flex rounded-full border border-nota-line/80 bg-white/80 shadow-[0_10px_32px_rgba(28,23,20,0.14)] backdrop-blur-xl"
+        style={{ padding: NAV_PAD, gap: ICON_GAP }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute rounded-full bg-nota-terracotta shadow-[0_8px_20px_rgba(196,92,62,0.28)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+          style={{
+            top: NAV_PAD,
+            left: NAV_PAD,
+            width: ICON_W,
+            height: ICON_H,
+            transform: `translate3d(${active * SLOT}px, 0, 0)`,
+          }}
+        />
         {tabs.map((tab) => (
           <Link
             key={tab.to}
             to={tab.to}
             preload="render"
+            aria-label={tab.label}
             activeOptions={{ exact: tab.exact }}
-            className="flex flex-col items-center gap-0.5 py-0.5 text-[11px] text-nota-muted"
+            className="relative z-10 flex items-center justify-center text-nota-ink"
             activeProps={{
-              className:
-                'flex flex-col items-center gap-0.5 py-0.5 text-[11px] font-semibold text-nota-terracotta',
+              className: 'relative z-10 flex items-center justify-center text-white',
             }}
+            style={{ width: ICON_W, height: ICON_H }}
           >
             {({ isActive }: { isActive: boolean }) => (
-              <>
-                <span
-                  className={
-                    isActive
-                      ? 'flex h-9 w-9 items-center justify-center rounded-full bg-nota-terracotta text-white shadow-[0_8px_20px_rgba(196,92,62,0.28)]'
-                      : 'flex h-9 w-9 items-center justify-center rounded-full text-nota-ink'
-                  }
-                >
-                  <tab.icon size={18} strokeWidth={isActive ? 2.1 : 1.6} />
-                </span>
-                {tab.label}
-              </>
+              <tab.icon
+                width={GLYPH_W}
+                height={GLYPH_H}
+                strokeWidth={isActive ? 2.2 : 1.7}
+              />
             )}
           </Link>
         ))}

@@ -94,6 +94,10 @@
   color: var(--color-nota-terracotta);
 }
 
+.dictionary-term[data-blocked='true'] {
+  pointer-events: none;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(16px);

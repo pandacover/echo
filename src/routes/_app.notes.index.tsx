@@ -21,8 +21,7 @@ function NotesPage() {
 
   return (
     <div className="px-6 pb-8 pt-4">
-      <p className="text-xs font-semibold tracking-[0.18em] text-nota-soft">YOUR LIBRARY</p>
-      <h1 className="mt-2 font-serif text-3xl">Notes</h1>
+      <h1 className="font-serif text-3xl">Notes</h1>
       {notes.length === 0 ? (
         <>
           <p className="mt-10 text-nota-muted">
