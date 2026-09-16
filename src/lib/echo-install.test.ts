@@ -103,3 +103,10 @@ test('the demo frame stays inside the viewport', () => {
   assert.ok(frame.x + frame.w <= 390)
   assert.ok(frame.y + frame.h <= 844)
 })
+
+test('wide screenshots get a shorter frame instead of empty letterbox', () => {
+  const tall = demoFrameRect(390, 844, 1206, 2436)
+  const wide = demoFrameRect(390, 844, 1206, 863)
+  assert.ok(wide.h < tall.h)
+  assert.ok(wide.h < 400)
+})

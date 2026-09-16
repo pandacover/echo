@@ -51,7 +51,7 @@ export const INSTALL_STEPS: InstallStep[] = [
       'They’re shipping a tiny experiment first: a home-screen shortcut, not an App Store listing. Success here is the green light.',
       pleaseClick('View More'),
     ],
-    hotspot: { x: 0.70, y: 0.40, w: 0.28, h: 0.50 },
+    hotspot: { x: 0.755, y: 0.46, w: 0.21, h: 0.40 },
   },
   {
     id: 'add-to-home',
@@ -164,9 +164,28 @@ export function bubbleSide(echoX: number, echoY: number, stageW: number, stageH:
   return ranked[0][0]
 }
 
-export function demoFrameRect(viewportW: number, viewportH: number) {
-  const width = Math.min(360, Math.max(280, viewportW - 24))
-  const height = Math.min(width * 1.58, viewportH - 28, 680)
+export function demoFrameRect(
+  viewportW: number,
+  viewportH: number,
+  imageW = 1206,
+  imageH = 2436,
+) {
+  const maxW = Math.min(360, Math.max(268, viewportW - 24))
+  const maxH = Math.min(viewportH - 24, 720)
+  const footer = 56
+  const maxStageH = Math.max(180, maxH - footer)
+  const imgRatio = imageW / Math.max(imageH, 1)
+  let width = maxW
+  let stageH = width / imgRatio
+  if (stageH > maxStageH) {
+    stageH = maxStageH
+    width = Math.max(240, stageH * imgRatio)
+  }
+  if (width > maxW) {
+    width = maxW
+    stageH = width / imgRatio
+  }
+  const height = stageH + footer
   return {
     x: (viewportW - width) / 2,
     y: Math.max(10, (viewportH - height) / 2),

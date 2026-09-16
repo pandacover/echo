@@ -131,7 +131,8 @@
   position: absolute;
   z-index: 2;
   width: max-content;
-  max-width: min(13.75rem, 58vw);
+.max-width: min(12.5rem, 54vw);
+  overflow-wrap: break-word;
   border-radius: 1.05rem;
   border: 1px solid rgb(196 92 62 / 0.28);
   background: #fff;

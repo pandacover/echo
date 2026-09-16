@@ -196,7 +196,12 @@ export function EchoInstallDemo({
     reduced.current = prefersReducedMotion()
     const node = frame.current
     if (!node) return
-    const target = demoFrameRect(window.innerWidth, window.innerHeight)
+    const target = demoFrameRect(
+      window.innerWidth,
+      window.innerHeight,
+      INSTALL_STEPS[0].imageWidth,
+      INSTALL_STEPS[0].imageHeight,
+    )
     const from = {
       x: origin.left,
       y: origin.top,
@@ -230,6 +235,39 @@ export function EchoInstallDemo({
       animation.revert()
     }
   }, [origin])
+
+  useLayoutEffect(() => {
+    if (!ready) return
+    const node = frame.current
+    if (!node) return
+    const target = demoFrameRect(window.innerWidth, window.innerHeight, step.imageWidth, step.imageHeight)
+    const rect = node.getBoundingClientRect()
+    const from = { x: rect.left, y: rect.top, w: rect.width, h: rect.height, r: 28 }
+    const to = { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 }
+    if (Math.abs(from.w - to.w) < 2 && Math.abs(from.h - to.h) < 2) {
+      applyBox(node, to)
+      return
+    }
+    if (reduced.current) {
+      applyBox(node, to)
+      return
+    }
+    const box = { ...from }
+    const animation = animate(box, {
+      x: to.x,
+      y: to.y,
+      w: to.w,
+      h: to.h,
+      r: to.r,
+      duration: 380,
+      ease: 'inOutCubic',
+      onRender: () => applyBox(node, box),
+      onComplete: () => applyBox(node, to),
+    })
+    return () => {
+      animation.pause()
+    }
+  }, [ready, step.imageHeight, step.imageWidth])
 
   useLayoutEffect(() => {
     const node = stage.current
@@ -292,8 +330,8 @@ export function EchoInstallDemo({
     }
     closing.current = true
     setReady(false)
-    const target = demoFrameRect(window.innerWidth, window.innerHeight)
-    const box = { x: target.x, y: target.y, w: target.w, h: target.h, r: 28 }
+    const rect = node.getBoundingClientRect()
+    const box = { x: rect.left, y: rect.top, w: rect.width, h: rect.height, r: 28 }
     const to = {
       x: origin.left,
       y: origin.top,
@@ -361,7 +399,9 @@ export function EchoInstallDemo({
         aria-modal="true"
         aria-labelledby="echo-install-title"
         data-testid="echo-install-demo"
-        className="pointer-events-auto fixed overflow-hidden border border-nota-terracotta bg-nota-bg shadow-[0_24px_60px_rgba(28,23,20,0.22)]"
+        className={`pointer-events-auto fixed border border-nota-terracotta bg-nota-bg shadow-[0_24px_60px_rgba(28,23,20,0.22)] ${
+          ready ? 'overflow-visible' : 'overflow-hidden'
+        }`}
         style={{
           left: origin.left,
           top: origin.top,
@@ -376,7 +416,7 @@ export function EchoInstallDemo({
         {ready ? (
           <div className="flex h-full flex-col">
             <div ref={stage} className="relative min-h-0 flex-1 overflow-visible bg-nota-blush/40">
-              <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 overflow-hidden rounded-t-[1.65rem]">
                 <img
                   src={step.image}
                   alt=""
@@ -413,7 +453,7 @@ export function EchoInstallDemo({
               ) : null}
             </div>
             <div
-              className="flex shrink-0 items-center justify-between gap-3 border-t border-nota-terracotta/20 bg-nota-bg px-3.5"
+              className="flex shrink-0 items-center justify-between gap-3 rounded-b-[1.65rem] border-t border-nota-terracotta/20 bg-nota-bg px-3.5"
               style={{ height: FOOTER_H }}
             >
               <div className="flex items-center gap-1.5" aria-label={`Step ${stepIndex + 1} of ${INSTALL_STEPS.length}`}>
