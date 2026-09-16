@@ -7,14 +7,16 @@ const tabs = [
   { to: '/dictionary', label: 'Dictionary', icon: BookOpen, exact: false },
 ] as const
 
-/** Outer inset — same on every side of the pill. */
-const NAV_PAD = 8
-/** 25% taller than the previous 44px highlight. */
-const ICON_H = 55
-/** Wider than tall so the active hit reads as a tab, not a circle. */
-const ICON_W = 70
-const ICON_GAP = 6
-const ICON_GLYPH = 30
+/** Same inset on every side, measured to the icon chip. */
+const NAV_PAD = 6
+/** Previous highlight was ~44px; +25% → 55, then a little extra to fill the taller pill. */
+const ICON_H = 58
+/** Wider than tall so the active chip is a stadium, not a circle. */
+const ICON_W = 88
+const ICON_GAP = 4
+/** Glyph fills most of the chip; slightly wider than tall. */
+const GLYPH_H = 36
+const GLYPH_W = 44
 const SLOT = ICON_W + ICON_GAP
 
 function tabIndex(pathname: string) {
@@ -34,10 +36,7 @@ export function TabBar() {
     >
       <div
         className="pointer-events-auto relative flex rounded-full border border-nota-line/80 bg-white/80 shadow-[0_10px_32px_rgba(28,23,20,0.14)] backdrop-blur-xl"
-        style={{
-          padding: NAV_PAD,
-          gap: ICON_GAP,
-        }}
+        style={{ padding: NAV_PAD, gap: ICON_GAP }}
       >
         <span
           aria-hidden
@@ -64,7 +63,11 @@ export function TabBar() {
             style={{ width: ICON_W, height: ICON_H }}
           >
             {({ isActive }: { isActive: boolean }) => (
-              <tab.icon size={ICON_GLYPH} strokeWidth={isActive ? 2.2 : 1.7} />
+              <tab.icon
+                width={GLYPH_W}
+                height={GLYPH_H}
+                strokeWidth={isActive ? 2.2 : 1.7}
+              />
             )}
           </Link>
         ))}
