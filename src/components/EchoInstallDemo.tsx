@@ -417,7 +417,7 @@ export function EchoInstallDemo({
       <button
         type="button"
         aria-label="Close install demo"
-        className={`absolute inset-0 bg-nota-ink/25 transition-opacity duration-500 ${
+        className={`absolute inset-0 bg-nota-ink/45 transition-opacity duration-500 ${
           ready ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={close}

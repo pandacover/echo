@@ -1,7 +1,7 @@
 export const TAP_MOVE_PX = 8
 export const ECHO_SIZE = 36
 export const EDGE_INSET = 22
-export const ACTION_GAP = 12
+export const ACTION_GAP = 18
 export const BUBBLE_W = 208
 export const BUBBLE_H = 96
 export const FRAME_FOOTER_H = 56
@@ -45,11 +45,11 @@ export const INSTALL_STEPS: InstallStep[] = [
     imageHeight: 2436,
     action: 'More',
     story: [
-      'My creator is trying this out. Echo is not in a store yet. If people actually use it, they will make a real app.',
+      'My creator is trying this out. Echo isn\'t in a store yet. If people actually use it, they\'ll make a real app.',
       pleaseClick('More'),
     ],
     hotspot: { x: 0.795, y: 0.926, w: 0.125, h: 0.045 },
-    bias: 'left',
+    bias: 'top',
   },
   {
     id: 'view-more',
@@ -58,10 +58,10 @@ export const INSTALL_STEPS: InstallStep[] = [
     imageHeight: 863,
     action: 'View More',
     story: [
-      'They wanted to see if people like this before they build a real app. For now it just lives on your home screen.',
+      'They want to see if people like this before they make a real app. For now it just lives on your home screen.',
       pleaseClick('View More'),
     ],
-    hotspot: { x: 0.76, y: 0.48, w: 0.20, h: 0.36 },
+    hotspot: { x: 0.78, y: 0.50, w: 0.18, h: 0.34 },
     bias: 'left',
   },
   {
@@ -71,11 +71,11 @@ export const INSTALL_STEPS: InstallStep[] = [
     imageHeight: 1397,
     action: 'Add to Home Screen',
     story: [
-      'If you add me and keep using me, they will make a real app.',
+      'If you add me and keep using Echo, they\'ll make a real app.',
       pleaseClick('Add to Home Screen'),
     ],
     hotspot: { x: 0.07, y: 0.848, w: 0.86, h: 0.075 },
-    bias: 'top',
+    bias: 'left',
   },
   {
     id: 'add',
@@ -84,10 +84,10 @@ export const INSTALL_STEPS: InstallStep[] = [
     imageHeight: 2436,
     action: 'Add',
     story: [
-      'Last one. Add me to your home screen and try it out.',
+      'This is the last tap. Add me to your home screen and try it.',
       pleaseClick('Add'),
     ],
-    hotspot: { x: 0.792, y: 0.028, w: 0.17, h: 0.062 },
+    hotspot: { x: 0.80, y: 0.030, w: 0.16, h: 0.055 },
     bias: 'left',
   },
 ]
