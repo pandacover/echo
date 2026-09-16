@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { blinkStrokes, ovalPath, pathBounds, type EyeSide } from './echo-eyes.ts'
+import { blinkStrokes, ovalPath, pathBounds, swirlPath, type EyeSide } from './echo-eyes.ts'
 
 const sides: EyeSide[] = ['left', 'right']
 
@@ -40,4 +40,12 @@ test('blink crease sits inside each chevron, not between the eyes', () => {
   assert.ok(rightLine.minX >= rightChevron.minX - 0.01)
   assert.ok(rightLine.maxX <= rightChevron.maxX + 0.01)
   assert.ok(leftLine.maxX < rightLine.minX)
+})
+
+test('swirl eyes are open spirals around the origin', () => {
+  const path = swirlPath()
+  assert.match(path, /^M /)
+  assert.doesNotMatch(path, /Z$/)
+  const commands = path.match(/[ML]/g) ?? []
+  assert.equal(commands.length, 73)
 })
