@@ -48,8 +48,7 @@ function DictionaryPage() {
 
   return (
     <div className="px-6 pb-8 pt-4">
-      <p className="text-xs font-semibold tracking-[0.18em] text-nota-soft">VOCABULARY</p>
-      <h1 className="mt-2 font-serif text-3xl">Dictionary</h1>
+      <h1 className="font-serif text-3xl">Dictionary</h1>
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}

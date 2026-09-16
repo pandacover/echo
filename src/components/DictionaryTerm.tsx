@@ -34,6 +34,7 @@ export function DictionaryTerm({
   mentions,
   currentNoteId,
   open,
+  blocked = false,
   onOpen,
   onClose,
 }: {
@@ -42,6 +43,7 @@ export function DictionaryTerm({
   mentions: Note[]
   currentNoteId: string
   open: boolean
+  blocked?: boolean
   onOpen: () => void
   onClose: () => void
 }) {
@@ -57,7 +59,7 @@ export function DictionaryTerm({
 
   const scheduleClose = () => {
     cancelClose()
-    closeTimer.current = window.setTimeout(() => onClose(), 180)
+    closeTimer.current = window.setTimeout(() => onClose(), 240)
   }
 
   const updatePosition = () => {
@@ -117,8 +119,9 @@ export function DictionaryTerm({
         className="dictionary-term"
         aria-expanded={open}
         aria-haspopup="dialog"
+        data-blocked={blocked ? 'true' : undefined}
         onMouseEnter={() => {
-          if (fineHover) openPopover()
+          if (fineHover && !blocked) openPopover()
         }}
         onMouseLeave={() => {
           if (fineHover) scheduleClose()
@@ -160,6 +163,14 @@ export function DictionaryTerm({
                 if (fineHover) scheduleClose()
               }}
             >
+              <span
+                aria-hidden
+                className={
+                  coords.place === 'below'
+                    ? 'absolute inset-x-0 bottom-full h-4'
+                    : 'absolute inset-x-0 top-full h-4'
+                }
+              />
               <p className="font-serif text-2xl leading-tight text-nota-ink">{entry.word}</p>
               <p className="mt-2 text-sm leading-relaxed text-nota-muted">
                 {entry.definition || 'No definition yet.'}

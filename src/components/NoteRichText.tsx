@@ -75,6 +75,7 @@ export function NoteRichText({
             mentions={mentionsByWord.get(segment.wordKey) ?? []}
             currentNoteId={currentNoteId}
             open={openKey === key}
+            blocked={openKey != null && openKey !== key}
             onOpen={() => setOpenKey(key)}
             onClose={() =>
               setOpenKey((current) => (current === key ? null : current))
