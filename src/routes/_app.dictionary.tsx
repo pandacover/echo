@@ -31,13 +31,20 @@ function DictionaryPage() {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return dictionary
-    return dictionary.filter(
-      (entry) =>
-        entry.word.toLowerCase().includes(needle) ||
-        entry.definition.toLowerCase().includes(needle),
-    )
-  }, [dictionary, query])
+    const matches = !needle
+      ? dictionary
+      : dictionary.filter(
+          (entry) =>
+            entry.word.toLowerCase().includes(needle) ||
+            entry.definition.toLowerCase().includes(needle),
+        )
+    if (!highlightKey) return matches
+    return [...matches].sort((a, b) => {
+      const aExact = normalizeWordKey(a.word) === highlightKey ? 0 : 1
+      const bExact = normalizeWordKey(b.word) === highlightKey ? 0 : 1
+      return aExact - bExact
+    })
+  }, [dictionary, highlightKey, query])
 
   return (
     <div className="px-6 pb-8 pt-4">

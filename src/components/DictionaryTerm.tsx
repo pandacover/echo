@@ -10,10 +10,19 @@ function useFineHover() {
 
   useEffect(() => {
     const media = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const sync = () => setFineHover(media.matches)
+    const sync = () => {
+      if (media.matches) setFineHover(true)
+    }
     sync()
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse') setFineHover(true)
+    }
     media.addEventListener('change', sync)
-    return () => media.removeEventListener('change', sync)
+    window.addEventListener('pointermove', onPointerMove)
+    return () => {
+      media.removeEventListener('change', sync)
+      window.removeEventListener('pointermove', onPointerMove)
+    }
   }, [])
 
   return fineHover
