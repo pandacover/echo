@@ -85,12 +85,65 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          quota_seconds?: number
+          updated_at?: string
+          used_seconds?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          quota_seconds?: number
+          updated_at?: string
+          used_seconds?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_my_recording_quota: {
+        Args: { p_seconds: number }
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
+      ensure_my_profile: {
+        Args: never
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
+      set_recording_quota: {
+        Args: { p_quota_seconds: number; p_user_id: string }
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
     }
     Enums: {
       [_ in never]: never
@@ -227,3 +280,4 @@ export const Constants = {
 export type Note = Database['public']['Tables']['notes']['Row']
 export type DictionaryEntry =
   Database['public']['Tables']['dictionary_entries']['Row']
+export type Profile = Database['public']['Tables']['profiles']['Row']

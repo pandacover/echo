@@ -1,7 +1,9 @@
 import { verifyToken } from '@clerk/backend'
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
-import type { DictionaryEntry, Note } from './database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, DictionaryEntry, Note } from './database.types'
+import { toRecordingQuota, type RecordingQuota } from './quota'
 import {
   getServerClerkSecretKey,
   isClerkSecretKey,
@@ -21,6 +23,9 @@ import {
 
 const SERVER_SESSION_MISSING =
   'Not signed in on the server. Sign in again, then retry the recording.'
+
+const QUOTA_REACHED = "You've used all of your recording time."
+const QUOTA_EXCEEDED = 'This recording is longer than your remaining time.'
 
 const CLERK_SUPABASE_SETUP =
   'Supabase did not accept the Clerk session as this user. The Clerk Frontend API URL in Supabase is expected and is not editable. Set SUPABASE_SECRET_KEY (sb_secret_…) or SUPABASE_SERVICE_ROLE_KEY on Vercel as a server-only env var, then redeploy.'
@@ -93,8 +98,72 @@ async function requireUser(sessionToken?: string | null) {
   }
 }
 
+async function loadQuota(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  persistUserId: boolean,
+): Promise<RecordingQuota> {
+  if (persistUserId) {
+    const { data: existing, error: readError } = await supabase
+      .from('profiles')
+      .select('quota_seconds, used_seconds')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (readError) throw new Error(readError.message)
+    if (existing) return toRecordingQuota(existing)
+
+    const { data: created, error: insertError } = await supabase
+      .from('profiles')
+      .insert({ user_id: userId })
+      .select('quota_seconds, used_seconds')
+      .single()
+    if (!insertError && created) return toRecordingQuota(created)
+
+    const { data: retry, error: retryError } = await supabase
+      .from('profiles')
+      .select('quota_seconds, used_seconds')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (retry) return toRecordingQuota(retry)
+    throw new Error(insertError?.message || retryError?.message || 'Could not create recording quota.')
+  }
+
+  const { data, error } = await supabase.rpc('ensure_my_profile')
+  if (error) throw new Error(error.message)
+  if (!data) throw new Error('Could not load recording quota.')
+  return toRecordingQuota(data)
+}
+
+async function consumeQuota(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  persistUserId: boolean,
+  seconds: number,
+) {
+  if (persistUserId) {
+    const { data: current, error: readError } = await supabase
+      .from('profiles')
+      .select('used_seconds')
+      .eq('user_id', userId)
+      .single()
+    if (readError) throw new Error(readError.message)
+    if (!current) throw new Error('Could not update recording quota.')
+    const { error } = await supabase
+      .from('profiles')
+      .update({ used_seconds: current.used_seconds + seconds })
+      .eq('user_id', userId)
+    if (error) throw new Error(error.message)
+    return
+  }
+
+  const { error } = await supabase.rpc('consume_my_recording_quota', {
+    p_seconds: seconds,
+  })
+  if (error) throw new Error(error.message)
+}
+
 export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () => {
-  const { supabase, userId } = await requireUser()
+  const { supabase, userId, persistUserId } = await requireUser()
   const [notesRes, dictRes] = await Promise.all([
     supabase
       .from('notes')
@@ -111,9 +180,17 @@ export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () 
   if (notesRes.error) throw new Error(notesRes.error.message)
   if (dictRes.error) throw new Error(dictRes.error.message)
 
+  let quota: RecordingQuota | null = null
+  try {
+    quota = await loadQuota(supabase, userId, persistUserId)
+  } catch (error) {
+    console.error('Recording quota lookup failed', error)
+  }
+
   return {
     notes: (notesRes.data ?? []) as Note[],
     dictionary: (dictRes.data ?? []) as DictionaryEntry[],
+    quota,
   }
 })
 
@@ -174,6 +251,14 @@ export const processRecording = createServerFn({ method: 'POST' })
       throw new Error('Missing audio upload')
     }
 
+    const quota = await loadQuota(supabase, userId, persistUserId)
+    if (quota.remainingSeconds <= 0) {
+      throw new Error(QUOTA_REACHED)
+    }
+    if (duration > quota.remainingSeconds + 5) {
+      throw new Error(QUOTA_EXCEEDED)
+    }
+
     const format = formatFromMime(audio.type || 'audio/webm')
     const raw = await transcribeAudio({
       apiKey,
@@ -203,6 +288,17 @@ export const processRecording = createServerFn({ method: 'POST' })
 
     if (error) {
       throw new Error(`Could not save to Supabase (${error.message}). ${CLERK_SUPABASE_SETUP}`)
+    }
+
+    try {
+      await consumeQuota(
+        supabase,
+        userId,
+        persistUserId,
+        Math.max(1, Math.round(duration)),
+      )
+    } catch (quotaError) {
+      console.error('Recording quota consume failed', quotaError)
     }
 
     if (cleaned.dictionary.length > 0) {

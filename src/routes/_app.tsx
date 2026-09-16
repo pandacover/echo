@@ -2,11 +2,13 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '~/components/AppShell'
 import type { DictionaryEntry, Note } from '~/lib/database.types'
 import { fetchLibrary } from '~/lib/notes.functions'
+import type { RecordingQuota } from '~/lib/quota'
 import { getSessionUserId } from '~/lib/session'
 
 const emptyLibrary = {
   notes: [] as Note[],
   dictionary: [] as DictionaryEntry[],
+  quota: null as RecordingQuota | null,
 }
 
 export const Route = createFileRoute('/_app')({
@@ -24,10 +26,13 @@ export const Route = createFileRoute('/_app')({
 })
 
 function AppLayout() {
-  const { dictionary } = Route.useLoaderData()
+  const { dictionary, quota } = Route.useLoaderData()
 
   return (
-    <AppShell wordCount={dictionary.length}>
+    <AppShell
+      wordCount={dictionary.length}
+      remainingSeconds={quota?.remainingSeconds ?? null}
+    >
       <Outlet />
     </AppShell>
   )

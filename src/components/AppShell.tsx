@@ -3,21 +3,30 @@ import { Show, UserButton } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import { TabBar } from './TabBar'
 import { InstallPrompt } from './InstallPrompt'
+import { FloatingNotices } from './FloatingNotices'
+import { QuotaPill } from './QuotaPill'
+import { PwaUpdateBanner } from './PwaUpdateBanner'
 
 export function AppShell({
   children,
   wordCount = 0,
+  remainingSeconds = null,
 }: {
   children: React.ReactNode
   wordCount?: number
+  remainingSeconds?: number | null
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-nota-bg">
-      <header className="flex items-center justify-between px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <Link to="/" className="font-serif text-[40px] leading-none tracking-tight">
+    <div className="relative flex min-h-dvh w-full flex-col bg-nota-bg">
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center px-6 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <div />
+        <Link
+          to="/"
+          className="justify-self-center font-serif text-[40px] leading-none tracking-tight"
+        >
           Echo
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
           <Link
             to="/dictionary"
             preload="render"
@@ -37,10 +46,16 @@ export function AppShell({
           </Show>
         </div>
       </header>
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col overflow-y-auto pb-[calc(7.25rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
-      <InstallPrompt />
+      <FloatingNotices>
+        {remainingSeconds != null ? (
+          <QuotaPill remainingSeconds={remainingSeconds} />
+        ) : null}
+        <InstallPrompt />
+        <PwaUpdateBanner />
+      </FloatingNotices>
       <TabBar />
     </div>
   )

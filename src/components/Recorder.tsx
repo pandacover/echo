@@ -6,6 +6,8 @@ import { RecordButton } from './RecordButton'
 import { Waveform, useAudioLevels } from './Waveform'
 import { processRecording } from '~/lib/notes.functions'
 
+const QUOTA_REACHED = "You've used all of your recording time."
+
 type SpeechRec = {
   start: () => void
   stop: () => void
@@ -41,7 +43,13 @@ function pickMimeType() {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? ''
 }
 
-export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) {
+export function Recorder({
+  remainingSeconds,
+  onSaved,
+}: {
+  remainingSeconds?: number | null
+  onSaved?: () => void | Promise<void>
+}) {
   const navigate = useNavigate()
   const process = useServerFn(processRecording)
   const { isSignedIn, getToken } = useAuth()
@@ -50,6 +58,8 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
   const chunksRef = useRef<Blob[]>([])
   const startedAtRef = useRef(0)
   const recognitionRef = useRef<SpeechRec | null>(null)
+  const finishingRef = useRef(false)
+  const remainingRef = useRef(remainingSeconds)
 
   const [recording, setRecording] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -59,13 +69,7 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
   const [stream, setStream] = useState<MediaStream | null>(null)
   const levels = useAudioLevels(stream, recording)
 
-  useEffect(() => {
-    if (!recording) return
-    const timer = window.setInterval(() => {
-      setElapsed(Math.round((Date.now() - startedAtRef.current) / 1000))
-    }, 250)
-    return () => window.clearInterval(timer)
-  }, [recording])
+  remainingRef.current = remainingSeconds
 
   const stopRecognition = () => {
     recognitionRef.current?.stop()
@@ -73,8 +77,14 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
   }
 
   const startRecording = useCallback(async () => {
+    if (remainingRef.current != null && remainingRef.current <= 0) {
+      setError(QUOTA_REACHED)
+      return
+    }
+
     setError(null)
     setPreview('')
+    finishingRef.current = false
     const media = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
     })
@@ -112,7 +122,8 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
 
   const finishRecording = useCallback(async () => {
     const recorder = recorderRef.current
-    if (!recorder) return
+    if (!recorder || finishingRef.current) return
+    finishingRef.current = true
 
     const blob = await new Promise<Blob>((resolve) => {
       recorder.onstop = () => {
@@ -129,6 +140,7 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
     const duration = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
     if (blob.size < 200) {
       setError('That recording was too short. Try again.')
+      finishingRef.current = false
       return
     }
 
@@ -146,8 +158,22 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
       setError(caught instanceof Error ? caught.message : 'Could not process that recording.')
     } finally {
       setBusy(false)
+      finishingRef.current = false
     }
   }, [getToken, navigate, onSaved, process, stream])
+
+  useEffect(() => {
+    if (!recording) return
+    const timer = window.setInterval(() => {
+      const next = Math.round((Date.now() - startedAtRef.current) / 1000)
+      setElapsed(next)
+      const remaining = remainingRef.current
+      if (remaining != null && remaining > 0 && next >= remaining) {
+        void finishRecording()
+      }
+    }, 250)
+    return () => window.clearInterval(timer)
+  }, [finishRecording, recording])
 
   const onToggle = async () => {
     if (busy) return
@@ -181,28 +207,35 @@ export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) 
 
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
+  const showPreview = recording || busy || Boolean(preview)
 
   return (
-    <div className="flex flex-1 flex-col items-center px-6 pb-4 pt-10">
+    <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8 pt-4">
       <p className="text-[15px] tracking-wide text-nota-muted">
         {busy ? 'Transcribing…' : recording ? `${minutes}:${seconds}` : 'Tap to record'}
       </p>
-      <div className="mt-8">
+      <div className="mt-6 p-8">
         <RecordButton recording={recording} busy={busy} onClick={() => void onToggle()} />
       </div>
-      <div className="mt-12 w-full">
-        <Waveform levels={levels} active={recording || busy} />
+      <div className="flex w-full justify-center">
+        <Waveform
+          levels={levels}
+          active={recording || busy}
+          compact={!recording && !busy}
+        />
       </div>
-      <div className="mt-10 w-full text-center">
-        <p className="text-[11px] font-semibold tracking-[0.18em] text-nota-soft">
-          LIVE TRANSCRIPTION PREVIEW
-        </p>
-        <p className="mt-3 min-h-12 font-serif text-[22px] leading-snug text-nota-ink">
-          {busy
-            ? 'Cleaning up grammar and structure…'
-            : preview || (recording ? 'Listening…' : 'Click on the mic and start speaking')}
-        </p>
-      </div>
+      {showPreview ? (
+        <div className="mt-10 w-full text-center">
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-nota-soft">
+            LIVE TRANSCRIPTION PREVIEW
+          </p>
+          <p className="mt-3 min-h-12 font-serif text-[22px] leading-snug text-nota-ink">
+            {busy
+              ? 'Cleaning up grammar and structure…'
+              : preview || 'Listening…'}
+          </p>
+        </div>
+      ) : null}
       {error ? (
         <p className="mt-6 max-w-sm text-center text-sm text-nota-terracotta">{error}</p>
       ) : null}

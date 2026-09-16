@@ -17,8 +17,9 @@ export function RecordButton({
       disabled={busy}
       aria-pressed={recording}
       aria-label={recording ? 'Stop recording' : 'Start recording'}
-      className="relative flex h-[118px] w-[118px] items-center justify-center rounded-full bg-nota-terracotta text-white shadow-[0_18px_40px_rgba(196,92,62,0.35)] transition enabled:active:scale-95 disabled:opacity-70"
+      className="relative isolate flex h-[118px] w-[118px] items-center justify-center rounded-full bg-nota-terracotta text-white shadow-[0_18px_40px_rgba(196,92,62,0.28)] transition enabled:active:scale-95 disabled:opacity-70"
     >
+      <span className="pointer-events-none absolute inset-[-36px] -z-10 rounded-full bg-nota-terracotta/30 blur-2xl" />
       {recording ? (
         <span className="absolute inset-[-14px] rounded-full border border-nota-terracotta/40 record-pulse" />
       ) : null}
