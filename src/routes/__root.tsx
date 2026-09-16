@@ -2,12 +2,14 @@
 import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { createServerFn } from '@tanstack/react-start'
 import { auth } from '@clerk/tanstack-react-start/server'
+import { Analytics } from '@vercel/analytics/react'
 import * as React from 'react'
 import {
   HeadContent,
   Outlet,
   Scripts,
   createRootRoute,
+  useRouterState,
 } from '@tanstack/react-router'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
 import { NotFound } from '~/components/NotFound'
@@ -118,6 +120,14 @@ function RootComponent() {
   )
 }
 
+function VercelAnalytics() {
+  const path = useRouterState({ select: (state) => state.location.pathname })
+  const route = useRouterState({
+    select: (state) => state.matches.at(-1)?.fullPath ?? state.location.pathname,
+  })
+  return <Analytics framework="tanstack-start" path={path} route={route} />
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -127,6 +137,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="bg-nota-bg antialiased">
         {children}
         <RegisterSW />
+        <VercelAnalytics />
         <Scripts />
       </body>
     </html>
