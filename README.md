@@ -7,7 +7,8 @@ Installable voice-note PWA built with **TanStack Start**, **Vite**, and **React*
 - Record button with live waveform and browser live-preview (Web Speech API when available)
 - Whisper transcription + GPT cleanup, grammar, title, and dictionary terms
 - Notes library and dictionary extracted from polished transcripts
-- Clerk auth, Supabase RLS on `notes` and `dictionary_entries`
+- Clerk auth, Supabase RLS on `notes`, `dictionary_entries`, and `profiles`
+- 10-minute free recording quota, with a remaining-time pill above the tab bar
 - Installable PWA (manifest, service worker, home-screen icons)
 - Vercel-ready via the Nitro Vite plugin
 
@@ -32,7 +33,7 @@ In the [Clerk Supabase integration](https://dashboard.clerk.com/setup/supabase),
 
 ### 2. Supabase
 
-The echo project is already linked. `notes` and `dictionary_entries` (with RLS) are applied from `supabase/migrations`.
+The echo project is already linked. `notes`, `dictionary_entries`, and `profiles` (with RLS) are applied from `supabase/migrations`.
 
 1. In the Supabase dashboard, open **Authentication → Sign In / Providers → Third-party** and add **Clerk** with the Clerk domain from step 1.
 2. Publishable values are in `.env.example`:
@@ -86,6 +87,33 @@ Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Thos
 
 4. Deploy. Add the production URL to Clerk allowed origins and the PWA will be installable over HTTPS.
 
+## Recording quota
+
+Every account is treated as a free user and starts with **10 minutes** of recording time (`profiles.quota_seconds = 600`). Time is consumed when a recording is saved and is **not** restored if the note is deleted.
+
+The remaining time is shown in a small pill just above the tab bar and counts down while you record. Recording **stops automatically** when that time runs out (including if the tab is backgrounded or you leave Record); the take is saved and billed up to the remaining seconds. The mic is disabled at 0. The server measures duration from the audio size as well as the client clock, and saving the note consumes quota in the same database transaction.
+
+If a PWA update banner is also visible, the two stack so they do not overlap.
+
+To raise a user's limit:
+
+1. Copy their Clerk user id from the [Clerk Users](https://dashboard.clerk.com) page (`user_…`).
+2. In Supabase, open **Table Editor → `profiles`**.
+3. Find that `user_id` and set `quota_seconds` to the new **total** (for example `3600` for 60 minutes).
+
+Or run this in the SQL Editor:
+
+```sql
+select public.set_recording_quota('user_2abc...', 3600);
+
+-- equivalent:
+update public.profiles
+set quota_seconds = 3600
+where user_id = 'user_2abc...';
+```
+
+If they have no row yet, `set_recording_quota` creates one.
+
 ## Scripts
 
 | Command | Purpose |
@@ -94,3 +122,4 @@ Do **not** put keys in `VITE_CLERK_SIGN_IN_URL` / `VITE_CLERK_SIGN_UP_URL`. Thos
 | `npm run build` | Production build |
 | `npm run preview` | Preview the production build |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Quota helper tests |

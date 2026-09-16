@@ -85,12 +85,106 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          quota_seconds?: number
+          updated_at?: string
+          used_seconds?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          quota_seconds?: number
+          updated_at?: string
+          used_seconds?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_my_recording_quota: {
+        Args: { p_seconds: number }
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
+      ensure_my_profile: {
+        Args: never
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
+      finalize_my_recording: {
+        Args: {
+          p_duration_seconds: number
+          p_polished_transcript: string
+          p_raw_transcript: string
+          p_title: string
+          p_word_count: number
+        }
+        Returns: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          polished_transcript: string
+          raw_transcript: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+      }
+      finalize_recording_for: {
+        Args: {
+          p_duration_seconds: number
+          p_polished_transcript: string
+          p_raw_transcript: string
+          p_title: string
+          p_user_id: string
+          p_word_count: number
+        }
+        Returns: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          polished_transcript: string
+          raw_transcript: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number
+        }
+      }
+      set_recording_quota: {
+        Args: { p_quota_seconds: number; p_user_id: string }
+        Returns: {
+          created_at: string
+          quota_seconds: number
+          updated_at: string
+          used_seconds: number
+          user_id: string
+        }
+      }
     }
     Enums: {
       [_ in never]: never
@@ -227,3 +321,4 @@ export const Constants = {
 export type Note = Database['public']['Tables']['notes']['Row']
 export type DictionaryEntry =
   Database['public']['Tables']['dictionary_entries']['Row']
+export type Profile = Database['public']['Tables']['profiles']['Row']

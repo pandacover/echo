@@ -1,5 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useRouter } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Recorder } from '~/components/Recorder'
 
 export const Route = createFileRoute('/_app/')({
@@ -9,9 +8,5 @@ export const Route = createFileRoute('/_app/')({
 function Home() {
   const router = useRouter()
 
-  return (
-    <Recorder
-      onSaved={() => router.invalidate({ sync: true })}
-    />
-  )
+  return <Recorder onSaved={() => router.invalidate({ sync: true })} />
 }

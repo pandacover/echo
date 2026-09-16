@@ -1,7 +1,19 @@
 import { verifyToken } from '@clerk/backend'
 import { auth } from '@clerk/tanstack-react-start/server'
 import { createServerFn } from '@tanstack/react-start'
-import type { DictionaryEntry, Note } from './database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, DictionaryEntry, Note } from './database.types'
+import {
+  billedDurationSeconds,
+  estimateAudioSeconds,
+  measuredDurationSeconds,
+  parseClaimedDuration,
+  QUOTA_EXCEEDED,
+  QUOTA_REACHED,
+  shouldRejectBeforeTranscribe,
+  toRecordingQuota,
+  type RecordingQuota,
+} from './quota'
 import {
   getServerClerkSecretKey,
   isClerkSecretKey,
@@ -93,8 +105,81 @@ async function requireUser(sessionToken?: string | null) {
   }
 }
 
+async function loadQuota(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  persistUserId: boolean,
+): Promise<RecordingQuota> {
+  if (persistUserId) {
+    const { data: existing, error: readError } = await supabase
+      .from('profiles')
+      .select('quota_seconds, used_seconds')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (readError) throw new Error(readError.message)
+    if (existing) return toRecordingQuota(existing)
+
+    const { data: created, error: insertError } = await supabase
+      .from('profiles')
+      .insert({ user_id: userId })
+      .select('quota_seconds, used_seconds')
+      .single()
+    if (!insertError && created) return toRecordingQuota(created)
+
+    const { data: retry, error: retryError } = await supabase
+      .from('profiles')
+      .select('quota_seconds, used_seconds')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (retry) return toRecordingQuota(retry)
+    throw new Error(insertError?.message || retryError?.message || 'Could not create recording quota.')
+  }
+
+  const { data, error } = await supabase.rpc('ensure_my_profile')
+  if (error) throw new Error(error.message)
+  if (!data) throw new Error('Could not load recording quota.')
+  return toRecordingQuota(data)
+}
+
+function quotaErrorMessage(error: { message?: string } | null | undefined, fallback: string) {
+  const message = error?.message ?? ''
+  if (message.includes('Recording time limit reached')) return QUOTA_REACHED
+  return message || fallback
+}
+
+async function finalizeNote(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  persistUserId: boolean,
+  input: {
+    title: string
+    rawTranscript: string
+    polishedTranscript: string
+    durationSeconds: number
+    wordCount: number
+  },
+): Promise<Note> {
+  const args = {
+    p_title: input.title,
+    p_raw_transcript: input.rawTranscript,
+    p_polished_transcript: input.polishedTranscript,
+    p_duration_seconds: input.durationSeconds,
+    p_word_count: input.wordCount,
+  }
+  const result = persistUserId
+    ? await supabase.rpc('finalize_recording_for', { p_user_id: userId, ...args })
+    : await supabase.rpc('finalize_my_recording', args)
+  if (result.error) {
+    throw new Error(quotaErrorMessage(result.error, result.error.message))
+  }
+  if (!result.data) {
+    throw new Error('Could not save to Supabase.')
+  }
+  return result.data as Note
+}
+
 export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () => {
-  const { supabase, userId } = await requireUser()
+  const { supabase, userId, persistUserId } = await requireUser()
   const [notesRes, dictRes] = await Promise.all([
     supabase
       .from('notes')
@@ -111,11 +196,26 @@ export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () 
   if (notesRes.error) throw new Error(notesRes.error.message)
   if (dictRes.error) throw new Error(dictRes.error.message)
 
+  let quota: RecordingQuota | null = null
+  try {
+    quota = await loadQuota(supabase, userId, persistUserId)
+  } catch (error) {
+    console.error('Recording quota lookup failed', error)
+  }
+
   return {
     notes: (notesRes.data ?? []) as Note[],
     dictionary: (dictRes.data ?? []) as DictionaryEntry[],
+    quota,
   }
 })
+
+export const fetchRecordingQuota = createServerFn({ method: 'POST' })
+  .validator((data: { clerkToken?: string } | undefined) => data ?? {})
+  .handler(async ({ data }) => {
+    const { supabase, userId, persistUserId } = await requireUser(data.clerkToken)
+    return loadQuota(supabase, userId, persistUserId)
+  })
 
 export const fetchNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
@@ -169,9 +269,24 @@ export const processRecording = createServerFn({ method: 'POST' })
     const sessionToken = String(data.get('clerkToken') || '')
     const { supabase, userId, persistUserId } = await requireUser(sessionToken)
     const audio = data.get('audio')
-    const duration = Number(data.get('duration') || 0)
     if (!(audio instanceof File)) {
       throw new Error('Missing audio upload')
+    }
+
+    const quota = await loadQuota(supabase, userId, persistUserId)
+    if (quota.remainingSeconds <= 0) {
+      throw new Error(QUOTA_REACHED)
+    }
+
+    const claimed = parseClaimedDuration(data.get('duration'))
+    const estimated = estimateAudioSeconds(audio.size)
+    const measured = measuredDurationSeconds(claimed, estimated)
+    if (shouldRejectBeforeTranscribe(measured, quota.remainingSeconds)) {
+      throw new Error(QUOTA_EXCEEDED)
+    }
+    const billed = billedDurationSeconds(measured, quota.remainingSeconds)
+    if (billed <= 0) {
+      throw new Error(QUOTA_REACHED)
     }
 
     const format = formatFromMime(audio.type || 'audio/webm')
@@ -188,21 +303,19 @@ export const processRecording = createServerFn({ method: 'POST' })
     const cleaned = await polishTranscript({ apiKey, raw })
     const wordCount = countWords(cleaned.polished)
 
-    const { data: note, error } = await supabase
-      .from('notes')
-      .insert({
-        ...(persistUserId ? { user_id: userId } : {}),
+    let note: Note
+    try {
+      note = await finalizeNote(supabase, userId, persistUserId, {
         title: cleaned.title,
-        raw_transcript: raw,
-        polished_transcript: cleaned.polished,
-        duration_seconds: Math.round(duration),
-        word_count: wordCount,
+        rawTranscript: raw,
+        polishedTranscript: cleaned.polished,
+        durationSeconds: billed,
+        wordCount,
       })
-      .select('*')
-      .single()
-
-    if (error) {
-      throw new Error(`Could not save to Supabase (${error.message}). ${CLERK_SUPABASE_SETUP}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save to Supabase.'
+      if (message === QUOTA_REACHED) throw error
+      throw new Error(`Could not save to Supabase (${message}). ${CLERK_SUPABASE_SETUP}`)
     }
 
     if (cleaned.dictionary.length > 0) {
