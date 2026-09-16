@@ -20,13 +20,15 @@ function EchoFace({ className }: { className?: string }) {
     let open = true
     const reduced = prefersReducedMotion()
 
-    const setOpen = (next: boolean, duration: number) => {
+    const setOpen = (next: boolean, duration: number | { oval: number; blink: number }) => {
       if (!alive || open === next) return
       open = next
+      const ovalMs = typeof duration === 'number' ? duration : duration.oval
+      const blinkMs = typeof duration === 'number' ? duration : duration.blink
       const ovalEls = [ovals.current.left, ovals.current.right].filter(Boolean)
       const blinkEl = blink.current
       if (!ovalEls.length || !blinkEl) return
-      if (reduced || duration === 0) {
+      if (reduced || ovalMs === 0) {
         for (const el of ovalEls) el?.setAttribute('fill-opacity', next ? '1' : '0')
         blinkEl.setAttribute('opacity', next ? '0' : '1')
         return
@@ -34,13 +36,13 @@ function EchoFace({ className }: { className?: string }) {
       animations.push(
         animate(ovalEls, {
           fillOpacity: next ? 1 : 0,
-          duration,
+          duration: ovalMs,
           ease: 'inOutSine',
           composition: 'replace',
         }),
         animate(blinkEl, {
           opacity: next ? 0 : 1,
-          duration,
+          duration: blinkMs,
           ease: 'inOutSine',
           composition: 'replace',
         }),
@@ -56,10 +58,10 @@ function EchoFace({ className }: { className?: string }) {
     }
 
     const closeThenOpen = (then: () => void) => {
-      setOpen(false, 90)
-      schedule(180, () => {
-        setOpen(true, 120)
-        schedule(160, then)
+      setOpen(false, { oval: 40, blink: 70 })
+      schedule(220, () => {
+        setOpen(true, { oval: 110, blink: 80 })
+        schedule(150, then)
       })
     }
 
