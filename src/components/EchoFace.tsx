@@ -58,10 +58,10 @@ function EchoFace({ className }: { className?: string }) {
     }
 
     const closeThenOpen = (then: () => void) => {
-      setOpen(false, { oval: 40, blink: 70 })
-      schedule(220, () => {
-        setOpen(true, { oval: 110, blink: 80 })
-        schedule(150, then)
+      setOpen(false, { oval: 18, blink: 32 })
+      schedule(100, () => {
+        setOpen(true, { oval: 50, blink: 36 })
+        schedule(70, then)
       })
     }
 
