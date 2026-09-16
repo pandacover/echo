@@ -200,7 +200,7 @@ export function Recorder({ onSaved }: { onSaved?: () => void }) {
         <p className="mt-3 min-h-12 font-serif text-[22px] leading-snug text-nota-ink">
           {busy
             ? 'Cleaning up grammar and structure…'
-            : preview || (recording ? 'Listening…' : 'Meeting with Priya about Q3…')}
+            : preview || (recording ? 'Listening…' : 'Click on the mic and start speaking')}
         </p>
       </div>
       {error ? (
