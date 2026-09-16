@@ -41,7 +41,7 @@ function pickMimeType() {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? ''
 }
 
-export function Recorder({ onSaved }: { onSaved?: () => void }) {
+export function Recorder({ onSaved }: { onSaved?: () => void | Promise<void> }) {
   const navigate = useNavigate()
   const process = useServerFn(processRecording)
   const { isSignedIn, getToken } = useAuth()
@@ -140,7 +140,7 @@ export function Recorder({ onSaved }: { onSaved?: () => void }) {
       const clerkToken = await getToken()
       if (clerkToken) form.append('clerkToken', clerkToken)
       const result = await process({ data: form })
-      onSaved?.()
+      await onSaved?.()
       await navigate({ to: '/notes/$noteId', params: { noteId: result.note.id } })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not process that recording.')

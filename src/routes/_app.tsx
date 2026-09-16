@@ -2,6 +2,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '~/components/AppShell'
 import type { DictionaryEntry, Note } from '~/lib/database.types'
 import { fetchLibrary } from '~/lib/notes.functions'
+import { getSessionUserId } from '~/lib/session'
 
 const emptyLibrary = {
   notes: [] as Note[],
@@ -9,10 +10,10 @@ const emptyLibrary = {
 }
 
 export const Route = createFileRoute('/_app')({
-  staleTime: Infinity,
-  shouldReload: false,
+  staleTime: 10_000,
   loader: async ({ context }) => {
-    if (!context.userId) return emptyLibrary
+    const userId = context.userId ?? getSessionUserId()
+    if (!userId) return emptyLibrary
     try {
       return await fetchLibrary()
     } catch {

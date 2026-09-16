@@ -93,7 +93,7 @@ async function requireUser(sessionToken?: string | null) {
   }
 }
 
-export const fetchLibrary = createServerFn({ method: 'GET' }).handler(async () => {
+export const fetchLibrary = createServerFn({ method: 'POST' }).handler(async () => {
   const { supabase, userId } = await requireUser()
   const [notesRes, dictRes] = await Promise.all([
     supabase
@@ -117,7 +117,7 @@ export const fetchLibrary = createServerFn({ method: 'GET' }).handler(async () =
   }
 })
 
-export const fetchNote = createServerFn({ method: 'GET' })
+export const fetchNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
     const { supabase, userId } = await requireUser()
@@ -126,15 +126,22 @@ export const fetchNote = createServerFn({ method: 'GET' })
       .select('*')
       .eq('id', data.id)
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
     if (error) throw new Error(error.message)
-    return note as Note
+    return (note as Note | null) ?? null
   })
 
 export const deleteNote = createServerFn({ method: 'POST' })
   .validator((data: { id: string }) => data)
   .handler(async ({ data }) => {
     const { supabase, userId } = await requireUser()
+    const { error: dictionaryError } = await supabase
+      .from('dictionary_entries')
+      .delete()
+      .eq('note_id', data.id)
+      .eq('user_id', userId)
+    if (dictionaryError) throw new Error(dictionaryError.message)
+
     const { error } = await supabase
       .from('notes')
       .delete()

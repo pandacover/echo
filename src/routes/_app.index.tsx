@@ -11,9 +11,7 @@ function Home() {
 
   return (
     <Recorder
-      onSaved={() => {
-        void router.invalidate()
-      }}
+      onSaved={() => router.invalidate({ sync: true })}
     />
   )
 }
